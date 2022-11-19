@@ -1,11 +1,16 @@
+<script lang="ts" setup>
+import { ref } from "vue";
+
+const footer = ref("@uni-helper");
+</script>
 <template>
   <view>
     <view class="header">
-      <slot>header</slot>
+      <slot name="header">header</slot>
     </view>
     <view><slot>main</slot></view>
     <view>
-      <slot>footer</slot>
+      <slot name="footer">{{ footer }}</slot>
     </view>
   </view>
 </template>
