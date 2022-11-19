@@ -1,0 +1,16 @@
+{
+  // pages.json
+  "pages": [
+    {
+      "path": "pages/index/index"
+    },
+    {
+      "path": "pages/index/test",
+      "layout": "kebabLayout"
+    },
+    {
+      "path": "pages/index/disabled",
+      "layout": false
+    }
+  ]
+}

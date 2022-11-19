@@ -1,0 +1,68 @@
+{
+  "name": "@uni-helper/vite-plugin-uni-layouts",
+  "type": "module",
+  "version": "0.0.0",
+  "packageManager": "pnpm@7.16.1",
+  "description": "",
+  "author": "KeJun",
+  "license": "MIT",
+  "homepage": "https://github.com/uni-helper/vite-plugin-uni-layouts#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uni-helper/vite-plugin-uni-layouts.git"
+  },
+  "bugs": "https://github.com/uni-helper/vite-plugin-uni-layouts/issues",
+  "keywords": [],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    },
+    "./client": {
+      "types": "./client.d.ts"
+    }
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/*",
+        "./dist/index.d.ts"
+      ],
+      "client": [
+        "./client.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "dev": "unbuild --stub",
+    "prepublishOnly": "pnpm build",
+    "release": "bumpp && npm publish",
+    "play": "nr -C playground dev:h5",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.9",
+    "bumpp": "^8.2.1",
+    "typescript": "^4.9.3",
+    "unbuild": "^0.9.4",
+    "vite": "^3.2.4",
+    "vitest": "^0.24.5",
+    "vue": "^3.2.41"
+  },
+  "dependencies": {
+    "@vue/compiler-dom": "^3.2.45",
+    "fast-glob": "^3.2.12",
+    "jsonc-parser": "^3.2.0",
+    "magic-string": "^0.26.7",
+    "scule": "^1.0.0"
+  }
+}

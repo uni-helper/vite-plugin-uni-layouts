@@ -1,0 +1,42 @@
+// Vitest Snapshot v1
+
+exports[`scanLayouts 1`] = `
+[
+  {
+    "kebabName": "pascal-layout",
+    "name": "pascalLayout",
+    "pascalName": "PascalLayout",
+    "path": "src/layouts/PascalLayout.vue",
+  },
+  {
+    "kebabName": "camel-layout",
+    "name": "camelLayout",
+    "pascalName": "CamelLayout",
+    "path": "src/layouts/camelLayout.vue",
+  },
+  {
+    "kebabName": "default",
+    "name": "default",
+    "pascalName": "Default",
+    "path": "src/layouts/default.vue",
+  },
+  {
+    "kebabName": "kebab-layout",
+    "name": "kebabLayout",
+    "pascalName": "KebabLayout",
+    "path": "src/layouts/kebab-layout.vue",
+  },
+  {
+    "kebabName": "no-index",
+    "name": "noIndex",
+    "pascalName": "NoIndex",
+    "path": "src/layouts/no-index/index.vue",
+  },
+  {
+    "kebabName": "the-nesting-layout",
+    "name": "theNestingLayout",
+    "pascalName": "TheNestingLayout",
+    "path": "src/layouts/the/nesting/layout.vue",
+  },
+]
+`;

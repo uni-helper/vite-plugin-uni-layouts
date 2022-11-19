@@ -1,0 +1,19 @@
+// Vitest Snapshot v1
+
+exports[`load pages 1`] = `
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+    },
+    {
+      "layout": "kebabLayout",
+      "path": "pages/index/test",
+    },
+    {
+      "layout": false,
+      "path": "pages/index/disabled",
+    },
+  ],
+}
+`;
