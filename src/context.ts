@@ -61,6 +61,8 @@ export class Context {
             sourceWithoutRoot += maybeUniLayout.children
               .map((v) => v.loc.source)
               .join("\n");
+          } else {
+            return;
           }
         } else {
           sourceWithoutRoot += node.children.map((v) => v.loc.source).join("");
