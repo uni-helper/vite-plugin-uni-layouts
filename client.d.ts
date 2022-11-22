@@ -1,6 +1,6 @@
 declare module "virtual:uni-layouts" {
-  import type { DefineComponent, App } from "vue";
+  import type { DefineComponent, App, Plugin } from "vue";
   export const layouts: Record<string, DefineComponent<{}, {}, any>>;
-  const plugin: (app: App) => void;
+  const plugin: Plugin
   export default plugin;
 }

@@ -1,4 +1,4 @@
-import type { Plugin } from "vite";
+import { createFilter, Plugin } from "vite";
 import { virtualModuleId } from "./constant";
 import { Context } from "./context";
 import { UserOptions } from "./types";
@@ -24,6 +24,12 @@ export const VitePluginUniLayouts = (userOptions: UserOptions = {}): Plugin => {
       }
     },
     transform(code, id) {
+      if (process.env.UNI_PLATFORM !== "h5") {
+        const filter = createFilter("src/main.(ts|js)");
+        if (filter(id)) {
+          return ctx.replaceVirtualModule(code, id);
+        }
+      }
       return ctx.transform(code, id);
     },
   };

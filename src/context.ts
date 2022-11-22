@@ -102,8 +102,37 @@ export class Context {
 export const layouts = {
   ${_exports.join("\n")}
 }
-export default function(app) {
-  ${components.join("\n")}
+export default {
+  install(app) {
+    ${components.join("\n")}
+  }
 }`;
+  }
+
+  async replaceVirtualModule(code: string, id: string) {
+    const ms = new MagicString(code);
+    let imports: string[] = [];
+    let components: string[] = [];
+    for (let v of this.layouts) {
+      imports.push(
+        `import Layout_${v.pascalName}_Uni from "${normalizePath(v.path)}"`
+      );
+      components.push(
+        `app.component("layout-${v.kebabName}-uni", Layout_${v.pascalName}_Uni)`
+      );
+    }
+    ms.append(imports.join("\n"));
+    // TODO: need better replace match
+    ms.replace("app.use(UniLayouts)", components.join("\n"));
+    const map = ms.generateMap({
+      source: id,
+      file: `${id}.map`,
+      includeContent: true,
+    });
+    code = ms.toString();
+    return {
+      code,
+      map,
+    };
   }
 }
