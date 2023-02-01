@@ -46,7 +46,7 @@
     "build": "unbuild",
     "dev": "unbuild --stub",
     "prepublishOnly": "pnpm build",
-    "release": "bumpp && npm publish",
+    "release": "bumpp",
     "play": "nr -C playground dev:h5",
     "test": "vitest"
   },
