@@ -1,0 +1,5 @@
+{
+    "extends": [
+        "github>uni-helper/renovate-config"
+    ]
+}
