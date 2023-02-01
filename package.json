@@ -39,7 +39,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "client.d.ts"
   ],
   "scripts": {
     "build": "unbuild",
@@ -50,19 +51,18 @@
     "test": "vitest"
   },
   "devDependencies": {
-    "@types/node": "^18.11.9",
+    "@types/node": "^18.11.18",
     "bumpp": "^8.2.1",
-    "typescript": "^4.9.3",
-    "unbuild": "^0.9.4",
-    "vite": "^3.2.4",
-    "vitest": "^0.24.5",
-    "vue": "^3.2.41"
+    "typescript": "^4.9.5",
+    "unbuild": "^1.1.1",
+    "vite": "^4.0.4",
+    "vitest": "^0.28.3"
   },
   "dependencies": {
     "@vue/compiler-dom": "^3.2.45",
     "fast-glob": "^3.2.12",
     "jsonc-parser": "^3.2.0",
-    "magic-string": "^0.26.7",
+    "magic-string": "^0.27.0",
     "scule": "^1.0.0"
   }
 }
