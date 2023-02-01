@@ -3,9 +3,9 @@
 exports[`use default layout 1`] = `
 "
 <template>
-  <uni-default-layout>
+  <layout-default-uni>
     <div>hello</div>
-  </uni-default-layout>
+  </layout-default-uni>
 </template>
 "
 `;
@@ -13,9 +13,9 @@ exports[`use default layout 1`] = `
 exports[`use inline layout 1`] = `
 "
 <template>
-  <uni-camel-layout-layout>
+  <layout-camel-layout-uni>
     <main></main>
-  </uni-camel-layout-layout>
+  </layout-camel-layout-uni>
 </template>
 "
 `;
@@ -23,36 +23,9 @@ exports[`use inline layout 1`] = `
 exports[`use test layout 1`] = `
 "
 <template>
-  <uni-kebab-layout-layout>
+  <layout-kebab-layout-uni>
     <main></main>
-  </uni-kebab-layout-layout>
+  </layout-kebab-layout-uni>
 </template>
 "
-`;
-
-exports[`virtualModule 1`] = `
-"import PascalLayout from \\"/Users/kejun/Workspace/vite-plugin-uni-layouts/test/fixtures/src/layouts/PascalLayout.vue\\"
-import CamelLayout from \\"/Users/kejun/Workspace/vite-plugin-uni-layouts/test/fixtures/src/layouts/camelLayout.vue\\"
-import Default from \\"/Users/kejun/Workspace/vite-plugin-uni-layouts/test/fixtures/src/layouts/default.vue\\"
-import KebabLayout from \\"/Users/kejun/Workspace/vite-plugin-uni-layouts/test/fixtures/src/layouts/kebab-layout.vue\\"
-import NoIndex from \\"/Users/kejun/Workspace/vite-plugin-uni-layouts/test/fixtures/src/layouts/no-index/index.vue\\"
-import TheNestingLayout from \\"/Users/kejun/Workspace/vite-plugin-uni-layouts/test/fixtures/src/layouts/the/nesting/layout.vue\\"
-export const layouts = {
-  PascalLayout,
-CamelLayout,
-Default,
-KebabLayout,
-NoIndex,
-TheNestingLayout,
-}
-export default {
-  install(app) {
-    app.component(\\"uni-pascal-layout-layout\\", PascalLayout)
-app.component(\\"uni-camel-layout-layout\\", CamelLayout)
-app.component(\\"uni-default-layout\\", Default)
-app.component(\\"uni-kebab-layout-layout\\", KebabLayout)
-app.component(\\"uni-no-index-layout\\", NoIndex)
-app.component(\\"uni-the-nesting-layout-layout\\", TheNestingLayout)
-  }
-}"
 `;

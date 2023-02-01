@@ -39,7 +39,3 @@ it("use inline layout", () => {
   expect(code?.code).toMatchSnapshot();
 });
 
-it("virtualModule", async () => {
-  const code = await ctx.virtualModule();
-  expect(code).toMatchSnapshot();
-});

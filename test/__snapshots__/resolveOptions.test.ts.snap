@@ -2,7 +2,7 @@
 
 exports[`resolve default options > default 1`] = `
 {
-  "cwd": "/Users/kejun/Workspace/vite-plugin-uni-layouts",
+  "cwd": "vite-plugin-uni-layouts",
   "layout": "default",
   "layoutDir": "src/layouts",
 }
@@ -10,7 +10,7 @@ exports[`resolve default options > default 1`] = `
 
 exports[`resolve user options > userOptions 1`] = `
 {
-  "cwd": "/Users/kejun/Workspace/vite-plugin-uni-layouts",
+  "cwd": "vite-plugin-uni-layouts",
   "layout": "home",
   "layoutDir": "src/layout",
 }
