@@ -15,11 +15,16 @@ export class Context {
   layouts: Layout[];
   constructor(options: ResolvedOptions) {
     this.options = options;
-    this.pages = loadPagesJson("src/pages.json", options.cwd);
+    this.pages = {
+      pages: [],
+    };
     this.layouts = scanLayouts(options.layoutDir, options.cwd);
   }
 
   transform(code: string, path: string) {
+    if (!this.pages.pages?.length) {
+      this.pages = loadPagesJson("src/pages.json", this.options.cwd);
+    }
     const page = getTarget(path, this.pages.pages, this.options.layout);
     if (!page) return;
     if (!this.layouts.length) return;
