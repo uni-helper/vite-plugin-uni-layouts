@@ -23,23 +23,6 @@ export default defineConfig({
 });
 ```
 
-导入虚拟布局并调用 `app.use`
-
-```ts
-// src/main.ts
-import { createSSRApp } from "vue";
-import App from "./App.vue";
-import UniLayouts from "virtual:uni-layouts";
-
-export function createApp() {
-  const app = createSSRApp(App);
-  app.use(UniLayouts);
-  return {
-    app,
-  };
-}
-```
-
 在 `src/layouts` 下创建布局
 
 ```vue

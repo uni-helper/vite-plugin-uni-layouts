@@ -111,7 +111,7 @@ export default {
 }`;
   }
 
-  async replaceVirtualModule(code: string, id: string) {
+  async importLayoutComponents(code: string, id: string) {
     const ms = new MagicString(code);
     let imports: string[] = [];
     let components: string[] = [];
@@ -120,12 +120,14 @@ export default {
         `import Layout_${v.pascalName}_Uni from "${normalizePath(v.path)}"`
       );
       components.push(
-        `app.component("layout-${v.kebabName}-uni", Layout_${v.pascalName}_Uni)`
+        `app.component("layout-${v.kebabName}-uni", Layout_${v.pascalName}_Uni);\n`
       );
     }
     ms.append(imports.join("\n"));
-    // TODO: need better replace match
-    ms.replace("app.use(UniLayouts)", components.join("\n"));
+    ms.replace(
+      /(createApp[\s\S]*?)(return\s{\s*app)/,
+      `$1${components.join("")}$2`
+    );
     const map = ms.generateMap({
       source: id,
       file: `${id}.map`,

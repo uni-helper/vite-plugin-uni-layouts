@@ -47,7 +47,8 @@
     "dev": "unbuild --stub",
     "prepublishOnly": "pnpm build",
     "release": "bumpp",
-    "play": "nr -C playground dev:h5",
+    "play": "npm -C playground run dev:h5",
+    "play:mp-weixin": "npm -C playground run dev:mp-weixin",
     "test": "vitest"
   },
   "devDependencies": {

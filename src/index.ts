@@ -24,11 +24,9 @@ export const VitePluginUniLayouts = (userOptions: UserOptions = {}): Plugin => {
       }
     },
     transform(code, id) {
-      if (process.env.UNI_PLATFORM !== "h5") {
-        const filter = createFilter("src/main.(ts|js)");
-        if (filter(id)) {
-          return ctx.replaceVirtualModule(code, id);
-        }
+      const filter = createFilter("src/main.(ts|js)");
+      if (filter(id)) {
+        return ctx.importLayoutComponents(code, id);
       }
       return ctx.transform(code, id);
     },
