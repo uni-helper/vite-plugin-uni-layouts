@@ -1,16 +1,14 @@
 # @uni-helper/vite-plugin-uni-layouts
 
-Customizable layouts framework for uni-app applications using Vite.
+Vite 下 uni-app 的可定制布局框架
 
-English | [简体中文](./README.zhCN.md)
-
-## Installation
+## 安装
 
 ```bash
 pnpm i -D @uni-helper/vite-plugin-uni-layouts
 ```
 
-## Usage
+## 使用
 
 ```ts
 // vite.config.ts
@@ -23,7 +21,7 @@ export default defineConfig({
 });
 ```
 
-Create the layout in `src/layouts`
+在 `src/layouts` 下创建布局
 
 ```vue
 <!-- default.vue -->
@@ -32,7 +30,7 @@ Create the layout in `src/layouts`
 </template>
 ```
 
-Add layout config on page in pages.json
+在 pages.json 中的页面中添加 layout 配置
 
 ```json
 // pages.json
@@ -40,20 +38,20 @@ Add layout config on page in pages.json
   ...
   "pages": [{
     "path": "pages/index/index",
-    // Optional, this is default value
+    // 可选, 这是默认值
     "layout": "default"
   }]
   ...
 }
 ```
 
-## Configuration
+## 配置
 
 see [type.ts](./src/types.ts)
 
-## Notes
+## 注意
 
-If you used [vite-plugin-uni-pages](https://github.com/uni-helper/vite-plugin-uni-pages), just only use route-block.
+如果你使用 [vite-plugin-uni-pages](https://github.com/uni-helper/vite-plugin-uni-pages), 只需使用 route-block
 
 ```vue
 <route>
@@ -62,7 +60,3 @@ If you used [vite-plugin-uni-pages](https://github.com/uni-helper/vite-plugin-un
 }
 </route>
 ```
-
-## TODO
-
-- [ ] layout ref
