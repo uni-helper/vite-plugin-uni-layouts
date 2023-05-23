@@ -9,6 +9,12 @@ const pages = [
     path: "pages/index/test",
     layout: "test",
   },
+  {
+    path: "pages/index/meta",
+    meta: {
+      layout: "home",
+    },
+  },
 ];
 it("getTarget:default", () => {
   const page = getTarget("pages/index/index.vue", pages);
@@ -25,4 +31,11 @@ it("getTarget:false", () => {
 it("getTarget:test", () => {
   const page = getTarget("pages/index/test.vue", pages);
   expect(page).toEqual(pages[1]);
+});
+it("getTarget:meta", () => {
+  const page = getTarget("pages/index/meta.vue", pages);
+  expect(page).toEqual({
+    ...pages[2],
+    layout: "home",
+  });
 });
