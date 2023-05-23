@@ -32,14 +32,19 @@ export default defineConfig({
 
 在 pages.json 中的页面中添加 layout 配置
 
-```json
+```jsonc
 // pages.json
 {
   ...
   "pages": [{
     "path": "pages/index/index",
     // 可选, 这是默认值
-    "layout": "default"
+    "layout": "default",
+    
+    // 或者使用 meta layout 更加贴合 vue-router 语义化
+    // "meta": {
+    //   "layout": "default"
+    // }
   }]
   ...
 }
