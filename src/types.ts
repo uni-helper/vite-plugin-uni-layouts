@@ -29,4 +29,5 @@ export interface Layout {
 export interface Page {
   path: string;
   layout?: string | false;
+  meta?: Record<string, any>;
 }

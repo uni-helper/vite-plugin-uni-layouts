@@ -32,7 +32,7 @@ export function getTarget(
   const page = pages.find((p) => path.includes(p.path));
   if (page) {
     return {
-      layout,
+      layout: page?.meta?.layout ?? layout,
       ...page,
     } as Required<Page>;
   }
