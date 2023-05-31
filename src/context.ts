@@ -9,23 +9,19 @@ import { kebabCase } from "scule";
 export class Context {
   config!: ResolvedConfig;
   options: ResolvedOptions;
-  pages: {
-    pages?: Page[];
-  };
+  pages: Page[];
   layouts: Layout[];
   constructor(options: ResolvedOptions) {
     this.options = options;
-    this.pages = {
-      pages: [],
-    };
-    this.layouts = scanLayouts(options.layoutDir, options.cwd);
+    (this.pages = []),
+      (this.layouts = scanLayouts(options.layoutDir, options.cwd));
   }
 
   transform(code: string, path: string) {
-    if (!this.pages.pages?.length) {
+    if (!this.pages?.length) {
       this.pages = loadPagesJson("src/pages.json", this.options.cwd);
     }
-    const page = getTarget(path, this.pages.pages, this.options.layout);
+    const page = getTarget(path, this.pages, this.options.layout, this.config.root);
     if (!page) return;
     if (!this.layouts.length) return;
     let layoutName: string | undefined | false = page.layout;

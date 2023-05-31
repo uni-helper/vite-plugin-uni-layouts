@@ -12,5 +12,17 @@
     "navigationBarTitleText": "uni-app",
     "navigationBarBackgroundColor": "#F8F8F8",
     "backgroundColor": "#F8F8F8"
-  }
+  },
+  "subPackages": [
+    {
+      "root": "pages-sub",
+      "pages": [
+        {
+          "path": "test/test",
+          "type": "page",
+          "layout": "default"
+        }
+      ]
+    }
+  ]
 }
