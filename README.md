@@ -51,6 +51,11 @@ see [type.ts](./src/types.ts)
 
 ## 注意
 
+layout 插件并非使用了什么魔法，它只做了两件事：
+1. 自动扫描并全局注册 layouts 目录下的组件
+2. 将页面使用 layout 组件包裹起来
+所以，在微信小程序下，如果你使用了 web-view , 那么不会生效。
+
 如果你使用 [vite-plugin-uni-pages](https://github.com/uni-helper/vite-plugin-uni-pages), 只需使用 route-block
 
 ```vue
