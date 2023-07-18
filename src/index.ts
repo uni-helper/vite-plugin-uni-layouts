@@ -13,6 +13,9 @@ export const VitePluginUniLayouts = (userOptions: UserOptions = {}): Plugin => {
     configResolved(config) {
       ctx.config = config;
     },
+    configureServer(server){
+      ctx.setupViteServer(server)
+    },
     resolveId(id) {
       if (id === virtualModuleId) {
         return id;

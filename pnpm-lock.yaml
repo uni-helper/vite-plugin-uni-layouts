@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@uni-helper/uni-env':
+        specifier: ^0.0.3
+        version: 0.0.3
       '@vue/compiler-dom':
         specifier: ^3.3.4
         version: 3.3.4
@@ -3168,6 +3171,10 @@ packages:
     dependencies:
       '@types/yargs-parser': 21.0.0
     dev: true
+
+  /@uni-helper/uni-env@0.0.3:
+    resolution: {integrity: sha512-K6MEnmN7Dg+NnEkfUUhjaKc/rPVY7tcGdsVUKOlC1/z2E6H6zjSSTdJg8z+sVJtZ03Ff1G/MHz2PYDyAS6gjQQ==}
+    dev: false
 
   /@vitejs/plugin-legacy@4.0.2(terser@5.15.1)(vite@4.3.9):
     resolution: {integrity: sha512-ivnt9sCkgwJTYTWLjuvY6H/HTuiQC1EgzAPkiAvi0yNAssiqOJjyjhG3hAK5LFUUorE0w9kGxn8K0f/74DlbxQ==}

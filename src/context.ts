@@ -1,31 +1,62 @@
-import { normalizePath, ResolvedConfig } from "vite";
+import { FSWatcher, normalizePath, ResolvedConfig, ViteDevServer } from "vite";
 import { scanLayouts } from "./scan";
 import { Layout, Page, ResolvedOptions } from "./types";
 import { getTarget, loadPagesJson } from "./utils";
 import MagicString from "magic-string";
-import { parse } from "@vue/compiler-dom";
+import { ElementNode, parse } from "@vue/compiler-dom";
 import { kebabCase } from "scule";
+import { isH5 } from "@uni-helper/uni-env";
+import { resolve } from "path";
 
 export class Context {
   config!: ResolvedConfig;
   options: ResolvedOptions;
   pages: Page[];
   layouts: Layout[];
+  private _server?: ViteDevServer;
   constructor(options: ResolvedOptions) {
     this.options = options;
-    (this.pages = []),
-      (this.layouts = scanLayouts(options.layoutDir, options.cwd));
+    this.pages = [];
+    this.layouts = scanLayouts(options.layoutDir, options.cwd);
+  }
+
+  setupViteServer(server: ViteDevServer) {
+    if (this._server === server)
+      return
+
+    this._server = server
+    this.setupWatcher(server.watcher)
+  }
+
+  async setupWatcher(watcher: FSWatcher) {
+    watcher.on("change", async (path) => {
+      if (
+        normalizePath(path) ===
+        normalizePath(resolve(this.options.cwd, "src/pages.json"))
+      )
+        this.pages = loadPagesJson("src/pages.json", this.options.cwd);
+        // TODO: auto reload
+    });
   }
 
   transform(code: string, path: string) {
     if (!this.pages?.length) {
       this.pages = loadPagesJson("src/pages.json", this.options.cwd);
     }
-    const page = getTarget(path, this.pages, this.options.layout, this.config.root);
+    const page = getTarget(
+      path,
+      this.pages,
+      this.options.layout,
+      this.config.root
+    );
     if (!page) return;
     if (!this.layouts.length) return;
     let layoutName: string | undefined | false = page.layout;
     let layout: Layout | undefined;
+
+    if (typeof layoutName === "boolean" && layoutName) {
+      layoutName = "default";
+    }
 
     if (typeof layoutName === "string") {
       if (!layoutName) return;
@@ -36,41 +67,40 @@ export class Context {
     const ast = parse(code);
     const ms = new MagicString(code);
     let sourceWithoutRoot = "";
-    for (const node of ast.children) {
-      if (node.type !== 1) {
+    const rootTemplate = ast.children.find(
+      (node) => node.type === 1 && node.tag === "template"
+    ) as ElementNode;
+    if (!rootTemplate) return;
+    const isDisabledLayout = typeof layoutName === "boolean" && !layoutName;
+    if (isDisabledLayout) {
+      const uniLayoutComponent = rootTemplate.children.find(
+        (node) => node.type === 1 && kebabCase(node.tag) === "uni-layout"
+      ) as ElementNode;
+
+      if (uniLayoutComponent) {
+        for (const prop of uniLayoutComponent.props) {
+          if (prop.name === "name" && prop.type === 6) {
+            layoutName = prop.value?.content;
+            // not set layout
+            if (!layoutName) return;
+            layout = this.layouts.find(
+              (l) => l.name === (layoutName as string)
+            );
+            if (!layout) return;
+          }
+        }
+        sourceWithoutRoot += uniLayoutComponent.children
+          .map((v) => v.loc.source)
+          .join("\n");
+      } else {
         return;
       }
-      if (node.tag === "template") {
-        if (typeof layoutName === "boolean" && !layoutName) {
-          const maybeUniLayout = node.children[0];
-          if (
-            maybeUniLayout.type === 1 &&
-            kebabCase(maybeUniLayout.tag) === "uni-layout"
-          ) {
-            for (const prop of maybeUniLayout.props) {
-              if (prop.name === "name" && prop.type === 6) {
-                layoutName = prop.value?.content;
-                // not set layout
-                if (!layoutName) return;
-                layout = this.layouts.find(
-                  (l) => l.name === (layoutName as string)
-                );
-                if (!layout) return;
-              }
-            }
-
-            sourceWithoutRoot += maybeUniLayout.children
-              .map((v) => v.loc.source)
-              .join("\n");
-          } else {
-            return;
-          }
-        } else {
-          sourceWithoutRoot += node.children.map((v) => v.loc.source).join("");
-        }
-        ms.replace(node.loc.source, "");
-      }
+    } else {
+      sourceWithoutRoot += rootTemplate.children
+        .map((v) => v.loc.source)
+        .join("");
     }
+    ms.replace(rootTemplate.loc.source, "");
     ms.prepend(`
 <template>
   <layout-${layout?.kebabName}-uni>
