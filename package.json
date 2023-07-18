@@ -1,7 +1,7 @@
 {
   "name": "@uni-helper/vite-plugin-uni-layouts",
   "type": "module",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "packageManager": "pnpm@8.6.0",
   "description": "Customizable layouts framework for uni-app applications using Vite.",
   "author": "KeJun",
