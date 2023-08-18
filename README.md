@@ -59,7 +59,6 @@ export default defineConfig({
   ...
   "pages": [{
     "path": "pages/index/index",
-    // 可选, 这是默认值
     "layout": false
   }]
   ...
@@ -101,3 +100,7 @@ layout 插件并非使用了什么魔法，它只做了两件事：
 }
 </route>
 ```
+
+## TODO
+- [ ] ref 支持
+- [ ] 动态布局
