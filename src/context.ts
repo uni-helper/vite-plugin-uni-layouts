@@ -21,11 +21,10 @@ export class Context {
   }
 
   setupViteServer(server: ViteDevServer) {
-    if (this._server === server)
-      return
+    if (this._server === server) return;
 
-    this._server = server
-    this.setupWatcher(server.watcher)
+    this._server = server;
+    this.setupWatcher(server.watcher);
   }
 
   async setupWatcher(watcher: FSWatcher) {
@@ -35,7 +34,7 @@ export class Context {
         normalizePath(resolve(this.options.cwd, "src/pages.json"))
       )
         this.pages = loadPagesJson("src/pages.json", this.options.cwd);
-        // TODO: auto reload
+      // TODO: auto reload
     });
   }
 
@@ -67,6 +66,8 @@ export class Context {
     const ast = parse(code);
     const ms = new MagicString(code);
     let sourceWithoutRoot = "";
+    let props: string[] = ['ref="unLayout"'];
+    let dynamicLayout = "";
     const rootTemplate = ast.children.find(
       (node) => node.type === 1 && node.tag === "template"
     ) as ElementNode;
@@ -78,7 +79,17 @@ export class Context {
       ) as ElementNode;
 
       if (uniLayoutComponent) {
+        props = uniLayoutComponent.props.map((v) => v.loc.source);
         for (const prop of uniLayoutComponent.props) {
+          if (
+            prop.name === "bind" &&
+            prop.type === 7 &&
+            prop?.exp?.type === 4 &&
+            prop.arg?.type === 4 &&
+            prop.arg?.content === "name"
+          ) {
+            dynamicLayout = prop.exp.content;
+          }
           if (prop.name === "name" && prop.type === 6) {
             layoutName = prop.value?.content;
             // not set layout
@@ -101,13 +112,21 @@ export class Context {
         .join("");
     }
     ms.replace(rootTemplate.loc.source, "");
-    ms.prepend(`
-<template>
-  <layout-${layout?.kebabName}-uni>
+    if (dynamicLayout) {
+      ms.prepend(`<template>
+  <component ${props.join(" ")} :is='\`layout-\${${dynamicLayout}}-uni\`'>
+    ${sourceWithoutRoot}
+  </component>
+</template>
+`);
+    } else {
+      ms.prepend(`<template>
+  <layout-${layout?.kebabName}-uni ${props.join(" ")}>
     ${sourceWithoutRoot}
   </layout-${layout?.kebabName}-uni>
 </template>
 `);
+    }
     const map = ms.generateMap({
       source: path,
       file: `${path}.map`,

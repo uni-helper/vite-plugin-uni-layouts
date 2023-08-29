@@ -67,16 +67,40 @@ export default defineConfig({
 
 ### 使用布局的插槽
 
-你需要先**禁用页面**的布局， 然后使用内置组件 `<uni-layout />`, 使用 `name` 属性指定布局，请使用字面量，暂不支持动态布局、ref 等（后续会支持）
+你需要先**禁用页面**的布局， 然后使用内置组件 `<uni-layout />`, 使用 `name` 属性指定布局，支持动态绑定 name、ref 等任意属性
 
 ```vue
+<script setup>
+const defaultName = ref('default')
+</script>
 <template>
-  <uni-layout name="default">
+  <uni-layout :name="defaultName">
     <template #header>uni-layout header</template>
     use slot
     <template #footer>uni-layout footer</template>
   </uni-layout>
 </template>
+```
+
+### `ref`
+
+只需声明一个 ref 变量 `uniLayout` 即可访问
+
+```vue
+<script setup>
+const uniLayout = ref()
+</script>
+```
+或者
+
+```vue
+<script>
+export default {
+  onLoad() {
+    console.log(this.$refs.uniLayout)
+  }
+}
+</script>
 ```
 
 ## 配置
@@ -102,5 +126,7 @@ layout 插件并非使用了什么魔法，它只做了两件事：
 ```
 
 ## TODO
-- [ ] ref 支持
-- [ ] 动态布局
+
+- [x] ref 支持
+- [x] 动态布局
+- [ ] 类型安全
