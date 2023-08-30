@@ -5,43 +5,47 @@ import { Page, ResolvedOptions, UserOptions } from "./types";
 import { normalizePath } from "vite";
 
 export function resolveOptions(userOptions: UserOptions = {}): ResolvedOptions {
+  console.log('project.root', process.env.UNI_INPUT_DIR)
   return {
     layout: "default",
-    layoutDir: "src/layouts",
-    cwd: process.cwd(),
+    layoutDir: "layouts",
+    cwd: process.env.UNI_INPUT_DIR || process.cwd(),
     ...userOptions,
   };
 }
 
-export function loadPagesJson(path = "src/pages.json", cwd = process.cwd()) {
+export function loadPagesJson(path = "pages.json", cwd = process.env.UNI_INPUT_DIR || process.cwd()) {
   const pagesJsonRaw = readFileSync(resolve(cwd, path), {
     encoding: "utf-8",
   });
-  const { pages = [], subPackages = [] } = jsonParse(pagesJsonRaw);
+  const { easycom, pages = [], subPackages = [] } = jsonParse(pagesJsonRaw);
 
-  return [
-    ...pages,
-    ...subPackages
-      .map(({ pages = {}, root = "" }: any) => {
-        return pages.map((page: any) => ({
-          ...page,
-          path: normalizePath(join(root, page.path)),
-        }));
-      })
-      .flat(),
-  ];
+  return {
+    easycom,
+    pages: [
+      ...pages,
+      ...subPackages
+        .map(({ pages = {}, root = "" }: any) => {
+          return pages.map((page: any) => ({
+            ...page,
+            path: normalizePath(join(root, page.path)),
+          }));
+        })
+        .flat(),
+    ]
+  };
 }
 
 export function getTarget(
   resolvePath: string,
   pages: Page[] = [],
   layout = "default",
-  cwd = process.cwd()
+  cwd = process.env.UNI_INPUT_DIR || process.cwd()
 ) {
   if (!(resolvePath.endsWith(".vue") || resolvePath.endsWith(".nvue"))) {
     return false;
   }
-  const relativePath = relative(join(cwd, "src"), resolvePath);
+  const relativePath = relative(cwd, resolvePath);
   const fileWithoutExt = path.basename(
     relativePath,
     path.extname(relativePath)

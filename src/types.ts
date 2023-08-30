@@ -6,18 +6,18 @@ export interface Options {
   layout: string;
   /**
    * layout dir
-   * @default "src/layouts"
+   * @default "layouts"
    */
   layoutDir: string;
   /**
-   * @default process.cwd()
+   * @default process.env.UNI_INPUT_DIR || process.cwd()
    */
   cwd: string;
 }
 
-export interface UserOptions extends Partial<Options> {}
+export interface UserOptions extends Partial<Options> { }
 
-export interface ResolvedOptions extends Options {}
+export interface ResolvedOptions extends Options { }
 
 export interface Layout {
   name: string;

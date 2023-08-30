@@ -13,7 +13,7 @@ export const VitePluginUniLayouts = (userOptions: UserOptions = {}): Plugin => {
     configResolved(config) {
       ctx.config = config;
     },
-    configureServer(server){
+    configureServer(server) {
       ctx.setupViteServer(server)
     },
     resolveId(id) {
@@ -27,9 +27,11 @@ export const VitePluginUniLayouts = (userOptions: UserOptions = {}): Plugin => {
       }
     },
     transform(code, id) {
-      const filter = createFilter("src/main.(ts|js)");
-      if (filter(id)) {
-        return ctx.importLayoutComponents(code, id);
+      if (ctx.easycom == false) {
+        const filter = createFilter("src/main.(ts|js)");
+        if (filter(id)) {
+          return ctx.importLayoutComponents(code, id);
+        }
       }
       return ctx.transform(code, id);
     },

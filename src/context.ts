@@ -11,6 +11,7 @@ import { resolve } from "path";
 export class Context {
   config!: ResolvedConfig;
   options: ResolvedOptions;
+  easycom: Boolean = false;
   pages: Page[];
   layouts: Layout[];
   private _server?: ViteDevServer;
@@ -31,22 +32,27 @@ export class Context {
     watcher.on("change", async (path) => {
       if (
         normalizePath(path) ===
-        normalizePath(resolve(this.options.cwd, "src/pages.json"))
-      )
-        this.pages = loadPagesJson("src/pages.json", this.options.cwd);
+        normalizePath(resolve(this.options.cwd, "pages.json"))
+      ) {
+        const pagesJson = loadPagesJson("pages.json", this.options.cwd);
+        this.easycom = pagesJson.easycom != undefined;
+        this.pages = pagesJson.pages;
+      }
       // TODO: auto reload
     });
   }
 
   transform(code: string, path: string) {
     if (!this.pages?.length) {
-      this.pages = loadPagesJson("src/pages.json", this.options.cwd);
+      const pagesJson = loadPagesJson("pages.json", this.options.cwd);
+      this.easycom = pagesJson.easycom != undefined;
+      this.pages = pagesJson.pages;
     }
+    if (path.includes(this.options.cwd) == false) return;
     const page = getTarget(
       path,
       this.pages,
-      this.options.layout,
-      this.config.root
+      this.options.layout
     );
     if (!page) return;
     if (!this.layouts.length) return;

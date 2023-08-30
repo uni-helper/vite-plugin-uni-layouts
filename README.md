@@ -23,9 +23,23 @@ export default defineConfig({
 });
 ```
 
+hbx建议使用easycom，可兼容nvue。`pages.json` 增加easycom配置，如下：
+
+```json
+{
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^layout-(.*)-uni": "@/layouts/$1.vue"
+    }
+  },
+  "pages": [...]
+}
+```
+
 ### 创建布局
 
-在 `src/layouts` 下创建布局
+在 `src/layouts` (hbx项目可能是`layouts`) 下创建布局
 
 ```vue
 <!-- default.vue -->
@@ -67,7 +81,8 @@ export default defineConfig({
 
 ### 使用布局的插槽
 
-你需要先**禁用页面**的布局， 然后使用内置组件 `<uni-layout />`, 使用 `name` 属性指定布局，支持动态绑定 name、ref 等任意属性
+你需要先**禁用页面**的布局， 然后使用内置组件 `<uni-layout />`, 使用 `name`
+属性指定布局，支持动态绑定 name、ref 等任意属性
 
 ```vue
 <script setup>
@@ -91,6 +106,7 @@ const defaultName = ref('default')
 const uniLayout = ref()
 </script>
 ```
+
 或者
 
 ```vue
@@ -112,10 +128,12 @@ see [type.ts](./src/types.ts)
 layout 插件并非使用了什么魔法，它只做了两件事：
 
 1. 自动扫描并全局注册 layouts 目录下的组件
-2. 将页面使用 layout 组件包裹起来
-   所以，在微信小程序下，如果你使用了 web-view , 那么不会生效。
+2. 将页面使用 layout 组件包裹起来 所以，在微信小程序下，如果你使用了 web-view ,
+   那么不会生效。
 
-如果你使用 [vite-plugin-uni-pages](https://github.com/uni-helper/vite-plugin-uni-pages), 只需使用 route-block
+如果你使用
+[vite-plugin-uni-pages](https://github.com/uni-helper/vite-plugin-uni-pages),
+只需使用 route-block
 
 ```vue
 <route lang="json">

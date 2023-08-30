@@ -4,7 +4,7 @@ import { camelCase, pascalCase, splitByCase, kebabCase } from "scule";
 import { normalizePath } from "vite";
 import { Layout } from "./types";
 
-export function scanLayouts(dir = "src/layouts", cwd = process.cwd()) {
+export function scanLayouts(dir = "layouts", cwd = process.env.UNI_INPUT_DIR || process.cwd()) {
   dir = resolve(cwd, dir);
   const files = fg.sync("**/*.vue", {
     onlyFiles: true,
@@ -31,7 +31,7 @@ export function scanLayouts(dir = "src/layouts", cwd = process.cwd()) {
     while (
       dirNameParts.length &&
       (dirNameParts[0] || "").toLowerCase() !==
-        (fileNameParts[0] || "").toLowerCase()
+      (fileNameParts[0] || "").toLowerCase()
     ) {
       componentNameParts.push(dirNameParts.shift()!);
     }
