@@ -66,7 +66,7 @@ export class Context {
     const ast = parse(code);
     const ms = new MagicString(code);
     let sourceWithoutRoot = "";
-    let props: string[] = ['ref="unLayout"'];
+    let props: string[] = ['ref="uniLayout"'];
     let dynamicLayout = "";
     const rootTemplate = ast.children.find(
       (node) => node.type === 1 && node.tag === "template"
