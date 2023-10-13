@@ -1,1 +1,1 @@
-export const virtualModuleId = "virtual:uni-layouts";
+export const virtualModuleId = 'virtual:uni-layouts'

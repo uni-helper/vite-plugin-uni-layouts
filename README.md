@@ -14,13 +14,13 @@ pnpm i -D @uni-helper/vite-plugin-uni-layouts
 
 ```ts
 // vite.config.ts
-import { defineConfig } from "vite";
-import uni from "@dcloudio/vite-plugin-uni";
-import UniLayouts from "@uni-helper/vite-plugin-uni-layouts";
+import { defineConfig } from 'vite'
+import uni from '@dcloudio/vite-plugin-uni'
+import UniLayouts from '@uni-helper/vite-plugin-uni-layouts'
 
 export default defineConfig({
   plugins: [UniLayouts(), uni()],
-});
+})
 ```
 
 ### 创建布局
@@ -41,13 +41,13 @@ export default defineConfig({
 ```json
 // pages.json
 {
-  ...
+  // ...
   "pages": [{
     "path": "pages/index/index",
     // 可选, 这是默认值
     "layout": "default"
   }]
-  ...
+  // ...
 }
 ```
 
@@ -56,12 +56,12 @@ export default defineConfig({
 ```json
 // pages.json
 {
-  ...
+  // ...
   "pages": [{
     "path": "pages/index/index",
     "layout": false
   }]
-  ...
+  // ...
 }
 ```
 
