@@ -54,11 +54,15 @@
     "release": "bumpp",
     "play": "npm -C playground run dev:h5",
     "play:mp-weixin": "npm -C playground run dev:mp-weixin",
-    "test": "vitest"
+    "test": "vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "devDependencies": {
+    "@antfu/eslint-config": "1.0.0-beta.26",
     "@types/node": "^20.5.7",
     "bumpp": "^9.2.0",
+    "eslint": "^8.51.0",
     "typescript": "^5.2.2",
     "unbuild": "^2.0.0",
     "vite": "^4.4.9",
