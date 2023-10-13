@@ -49,16 +49,16 @@
     "@dcloudio/uni-mp-weixin": "3.0.0-alpha-3090220231010001",
     "@dcloudio/uni-quickapp-webview": "3.0.0-alpha-3090220231010001",
     "vue": "^3.3.4",
-    "vue-i18n": "^9.2.2"
+    "vue-i18n": "^9.5.0"
   },
   "devDependencies": {
-    "@dcloudio/types": "^3.3.3",
+    "@dcloudio/types": "^3.4.0",
     "@dcloudio/uni-automator": "3.0.0-alpha-3090220231010001",
     "@dcloudio/uni-cli-shared": "3.0.0-alpha-3090220231010001",
     "@dcloudio/uni-stacktracey": "3.0.0-alpha-3090220231010001",
     "@dcloudio/vite-plugin-uni": "3.0.0-alpha-3090220231010001",
     "@uni-helper/vite-plugin-uni-layouts": "workspace:*",
     "typescript": "^4.9.5",
-    "vite": "^4.4.9"
+    "vite": "^4.4.11"
   }
 }
