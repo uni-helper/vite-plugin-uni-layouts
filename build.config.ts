@@ -9,4 +9,11 @@ export default defineBuildConfig({
   },
   failOnWarn: false,
   externals: ['vite', 'vue'],
+  hooks: {
+    'build:before': function (ctx) {
+      ctx.options.externals = ctx.options.externals.filter(
+        v => v !== 'estree-walker',
+      )
+    },
+  },
 })
