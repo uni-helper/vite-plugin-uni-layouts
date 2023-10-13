@@ -5,15 +5,15 @@ import { getTarget, loadPagesJson } from "./utils";
 import MagicString from "magic-string";
 import { ElementNode, parse } from "@vue/compiler-dom";
 import { kebabCase } from "scule";
-import { isH5 } from "@uni-helper/uni-env";
 import { resolve } from "path";
-
+import { walk } from "estree-walker";
 export class Context {
   config!: ResolvedConfig;
   options: ResolvedOptions;
   pages: Page[];
   layouts: Layout[];
   private _server?: ViteDevServer;
+  parse?: (input: string, options?: any) => any;
   constructor(options: ResolvedOptions) {
     this.options = options;
     this.pages = [];
@@ -66,12 +66,39 @@ export class Context {
     const ast = parse(code);
     const ms = new MagicString(code);
     let sourceWithoutRoot = "";
-    let props: string[] = ['ref="uniLayout"'];
+    let props: string[] = [];
     let dynamicLayout = "";
     const rootTemplate = ast.children.find(
       (node) => node.type === 1 && node.tag === "template"
     ) as ElementNode;
+    const rootScript = ast.children.find(
+      (node) => node.type === 1 && node.tag === "script"
+    ) as ElementNode;
     if (!rootTemplate) return;
+
+    if (rootScript) {
+      const firstContent = rootScript.children?.[0];
+      const code = firstContent?.type === 2 && firstContent.content;
+      if (code && this.parse) {
+        const ast = this.parse(code);
+        walk(ast, {
+          enter(node) {
+            if (node.type === "VariableDeclarator") {
+              const hasUniLayoutVar =
+                node.id.type === "Identifier" && node.id.name === "uniLayout";
+              const isRef =
+                node.init?.type === "CallExpression" &&
+                node.init.callee.type === "Identifier" &&
+                node.init.callee.name === "ref";
+              if (hasUniLayoutVar && isRef) {
+                props.push('ref="uniLayout"');
+              }
+            }
+          },
+        });
+      }
+    }
+
     const isDisabledLayout = typeof layoutName === "boolean" && !layoutName;
     if (isDisabledLayout) {
       const uniLayoutComponent = rootTemplate.children.find(

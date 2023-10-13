@@ -67,6 +67,7 @@
   "dependencies": {
     "@uni-helper/uni-env": "^0.0.3",
     "@vue/compiler-dom": "^3.3.4",
+    "estree-walker": "^3.0.3",
     "fast-glob": "^3.3.1",
     "jsonc-parser": "^3.2.0",
     "magic-string": "^0.30.3",
