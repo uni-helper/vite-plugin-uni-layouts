@@ -14,10 +14,10 @@ function handleSwitch() {
 </script>
 
 <template>
+  <button @click="handleSwitch"> switch </button>
   <uni-layout :name="layoutName">
     <template #header>uni-layout header</template>
     currentLayoutName: {{ layoutName }}
-    <button @click="handleSwitch"> switch </button>
     <template #footer>uni-layout footer</template>
   </uni-layout>
 </template>
