@@ -1,14 +1,15 @@
 import { resolve } from 'node:path'
+import type { Node } from '@babel/types'
+import { isMp } from '@uni-helper/uni-env'
+import type { AttributeNode, DirectiveNode, ElementNode, SimpleExpressionNode } from '@vue/compiler-core'
+import { babelParse, walkAST } from 'ast-kit'
+import MagicString from 'magic-string'
+import { kebabCase } from 'scule'
 import type { FSWatcher, ResolvedConfig, ViteDevServer } from 'vite'
 import { normalizePath } from 'vite'
-import MagicString from 'magic-string'
-import type { ElementNode } from '@vue/compiler-dom'
-import { parse } from '@vue/compiler-dom'
-import { kebabCase } from 'scule'
-import { walk } from 'estree-walker'
 import { scanLayouts } from './scan'
 import type { Layout, Page, ResolvedOptions } from './types'
-import { getTarget, loadPagesJson } from './utils'
+import { getTarget, loadPagesJson, parseSFC } from './utils'
 
 export class Context {
   config!: ResolvedConfig
@@ -16,7 +17,6 @@ export class Context {
   pages: Page[]
   layouts: Layout[]
   private _server?: ViteDevServer
-  parse?: (input: string, options?: any) => any
   constructor(options: ResolvedOptions) {
     this.options = options
     this.pages = []
@@ -42,7 +42,11 @@ export class Context {
     })
   }
 
-  transform(code: string, path: string) {
+  async transform(code: string, path: string) {
+    // no layouts
+    if (!this.layouts.length)
+      return
+    // no pages
     if (!this.pages?.length)
       this.pages = loadPagesJson('src/pages.json', this.options.cwd)
 
@@ -50,122 +54,67 @@ export class Context {
       path,
       this.pages,
       this.options.layout,
-      this.config.root,
+      this.config?.root || this.options.cwd,
     )
+
+    // is not page
     if (!page)
       return
-    if (!this.layouts.length)
-      return
-    let layoutName: string | undefined | false = page.layout
-    let layout: Layout | undefined
 
-    if (typeof layoutName === 'boolean' && layoutName)
-      layoutName = 'default'
+    let pageLayoutName: string | undefined | false = page.layout
+    let pageLayout: Layout | undefined
+    const pageLayoutProps: string[] = []
 
-    if (typeof layoutName === 'string') {
-      if (!layoutName)
+    if (typeof pageLayoutName === 'boolean' && pageLayoutName)
+      pageLayoutName = 'default'
+
+    if (typeof pageLayoutName === 'string') {
+      // layout name is empty
+      if (!pageLayoutName)
         return
-      layout = this.layouts.find(l => l.name === (layoutName as string))
-      if (!layout)
+      pageLayout = this.layouts.find(l => l.name === (pageLayoutName as string))
+      // can not find layout
+      if (!pageLayout)
         return
     }
+    const disabled = typeof pageLayoutName === 'boolean' && !pageLayoutName
 
-    const ast = parse(code)
+    const sfc = await parseSFC(code)
     const ms = new MagicString(code)
-    let sourceWithoutRoot = ''
-    let props: string[] = []
-    let dynamicLayout = ''
-    const rootTemplate = ast.children.find(
-      node => node.type === 1 && node.tag === 'template',
-    ) as ElementNode
-    const rootScript = ast.children.find(
-      node => node.type === 1 && node.tag === 'script',
-    ) as ElementNode
-    if (!rootTemplate)
-      return
-
-    if (rootScript) {
-      const firstContent = rootScript.children?.[0]
-      const code = firstContent?.type === 2 && firstContent.content
-      if (code && this.parse) {
-        const ast = this.parse(code)
-        walk(ast, {
-          enter(node) {
-            if (node.type === 'VariableDeclarator') {
-              const hasUniLayoutVar
-                = node.id.type === 'Identifier' && node.id.name === 'uniLayout'
-              const isRef
-                = node.init?.type === 'CallExpression'
-                && node.init.callee.type === 'Identifier'
-                && node.init.callee.name === 'ref'
-              if (hasUniLayoutVar && isRef)
-                props.push('ref="uniLayout"')
-            }
-          },
-        })
-      }
-    }
-
-    const isDisabledLayout = typeof layoutName === 'boolean' && !layoutName
-    if (isDisabledLayout) {
-      const uniLayoutComponent = rootTemplate.children.find(
-        node => node.type === 1 && kebabCase(node.tag) === 'uni-layout',
-      ) as ElementNode
-
-      if (uniLayoutComponent) {
-        props = uniLayoutComponent.props.map(v => v.loc.source)
-        for (const prop of uniLayoutComponent.props) {
-          if (
-            prop.name === 'bind'
-            && prop.type === 7
-            && prop?.exp?.type === 4
-            && prop.arg?.type === 4
-            && prop.arg?.content === 'name'
-          )
-            dynamicLayout = prop.exp.content
-
-          if (prop.name === 'name' && prop.type === 6) {
-            layoutName = prop.value?.content
-            // not set layout
-            if (!layoutName)
-              return
-            layout = this.layouts.find(
-              l => l.name === (layoutName as string),
-            )
-            if (!layout)
-              return
+    const setupCode = sfc.scriptSetup?.loc.source
+    // check has uniLayout ref
+    if (setupCode) {
+      const setupAst = babelParse(setupCode, sfc.scriptSetup?.lang)
+      walkAST<Node>(setupAst, {
+        enter(node) {
+          if (node.type === 'VariableDeclarator') {
+            const hasUniLayoutVar
+                  = node.id.type === 'Identifier' && node.id.name === 'uniLayout'
+            const isRef
+                  = node.init?.type === 'CallExpression'
+                  && node.init.callee.type === 'Identifier'
+                  && node.init.callee.name === 'ref'
+            if (hasUniLayoutVar && isRef)
+              pageLayoutProps.push('ref="uniLayout"')
           }
-        }
-        sourceWithoutRoot += uniLayoutComponent.children
-          .map(v => v.loc.source)
-          .join('\n')
-      }
-      else {
+        },
+      })
+    }
+
+    if (disabled) {
+      // find dynamic layout
+      const uniLayoutNode = sfc.template?.ast.children.find(v => v.type === 1 && kebabCase(v.tag) === 'uni-layout') as ElementNode
+      // not found
+      if (!uniLayoutNode)
         return
-      }
+
+      ms.overwrite(uniLayoutNode.loc.start.offset, uniLayoutNode.loc.end.offset, this.generateDynamicLayout(uniLayoutNode))
     }
     else {
-      sourceWithoutRoot += rootTemplate.children
-        .map(v => v.loc.source)
-        .join('')
+      if (sfc.template?.loc.start.offset && sfc.template?.loc.end.offset)
+        ms.overwrite(sfc.template?.loc.start.offset, sfc.template?.loc.end.offset, `\n<layout-${pageLayout?.kebabName}-uni ${pageLayoutProps.join(' ')}>${sfc.template.content}</layout-${pageLayout?.kebabName}-uni>\n`)
     }
-    ms.replace(rootTemplate.loc.source, '')
-    if (dynamicLayout) {
-      ms.prepend(`<template>
-  <component ${props.join(' ')} :is='\`layout-\${${dynamicLayout}}-uni\`'>
-    ${sourceWithoutRoot}
-  </component>
-</template>
-`)
-    }
-    else {
-      ms.prepend(`<template>
-  <layout-${layout?.kebabName}-uni ${props.join(' ')}>
-    ${sourceWithoutRoot}
-  </layout-${layout?.kebabName}-uni>
-</template>
-`)
-    }
+
     const map = ms.generateMap({
       source: path,
       file: `${path}.map`,
@@ -198,6 +147,40 @@ export default {
     ${components.join('\n')}
   }
 }`
+  }
+
+  generateDynamicLayout(node: ElementNode) {
+    const staticLayoutNameBind = node.props.find(
+      v => v.type === 6 && v.name === 'name' && v.value?.content,
+    ) as AttributeNode
+    const dynamicLayoutNameBind = node.props.find(
+      v => v.type === 7 && v.name === 'bind' && v.arg?.type === 4 && v.arg?.content === 'name' && v.exp?.type === 4 && v.exp.content,
+    ) as DirectiveNode
+    const template = node.children.map(v => v.loc.source).join('\n')
+    const nodeProps = node.props.filter(prop => !(prop === dynamicLayoutNameBind || prop === staticLayoutNameBind)).map(v => v.loc.source)
+
+    if (!(staticLayoutNameBind || dynamicLayoutNameBind))
+      console.warn('[vite-plugin-uni-layouts] Dynamic layout not found name bind')
+
+    if (isMp) {
+      const props: string[] = [...nodeProps]
+      if (staticLayoutNameBind) {
+        const layout = staticLayoutNameBind.value?.content
+        return `<layout-${layout}-uni ${props.join(' ')}>${template}</layout-${layout}-uni>`
+      }
+
+      const bind = (dynamicLayoutNameBind.exp as SimpleExpressionNode).content
+
+      return this.layouts.map((layout, index) => `<layout-${layout.kebabName}-uni v-${index === 0 ? 'if' : 'else-if'}="${bind} ==='${layout.kebabName}'" ${props.join(' ')}>${template}</layout-${layout.kebabName}-uni>`).join('\n')
+    }
+    else {
+      const props: string[] = [...nodeProps]
+      if (staticLayoutNameBind)
+        props.push(`is="layout-${staticLayoutNameBind.value?.content}-uni"`)
+      else
+        props.push(`:is="\`layout-\${${(dynamicLayoutNameBind.exp as SimpleExpressionNode).content}}-uni\`"`)
+      return `<component ${props.join(' ')}>${template}</component>`
+    }
   }
 
   async importLayoutComponents(code: string, id: string) {

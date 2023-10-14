@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs'
 import path, { join, relative, resolve } from 'node:path'
 import process from 'node:process'
+import type { SFCDescriptor } from '@vue/compiler-sfc'
+import { parse as VueParser } from '@vue/compiler-sfc'
 import { parse as jsonParse } from 'jsonc-parser'
 import { normalizePath } from 'vite'
 import type { Page, ResolvedOptions, UserOptions } from './types'
@@ -59,4 +61,23 @@ export function getTarget(
     } as Required<Page>
   }
   return false
+}
+
+export async function parseSFC(code: string): Promise<SFCDescriptor> {
+  try {
+    return (
+      VueParser(code, {
+        pad: 'space',
+      }).descriptor
+      // for @vue/compiler-sfc ^2.7
+      || (VueParser as any)({
+        source: code,
+      })
+    )
+  }
+  catch {
+    throw new Error(
+      '[vite-plugin-uni-layouts] Vue3\'s "@vue/compiler-sfc" is required.',
+    )
+  }
 }
