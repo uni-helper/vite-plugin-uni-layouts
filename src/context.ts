@@ -1,9 +1,9 @@
-import { resolve } from 'node:path'
 import type { Node } from '@babel/types'
 import { isMp } from '@uni-helper/uni-env'
 import type { AttributeNode, DirectiveNode, ElementNode, SimpleExpressionNode } from '@vue/compiler-core'
 import { babelParse, walkAST } from 'ast-kit'
 import MagicString from 'magic-string'
+import { resolve } from 'node:path'
 import { kebabCase } from 'scule'
 import type { FSWatcher, ResolvedConfig, ViteDevServer } from 'vite'
 import { normalizePath } from 'vite'
@@ -115,14 +115,16 @@ export class Context {
         ms.overwrite(sfc.template?.loc.start.offset, sfc.template?.loc.end.offset, `\n<layout-${pageLayout?.kebabName}-uni ${pageLayoutProps.join(' ')}>${sfc.template.content}</layout-${pageLayout?.kebabName}-uni>\n`)
     }
 
-    const map = ms.generateMap({
-      source: path,
-      file: `${path}.map`,
-      includeContent: true,
-    })
-    return {
-      code: ms.toString(),
-      map,
+    if (ms.hasChanged()) {
+      const map = ms.generateMap({
+        source: path,
+        file: `${path}.map`,
+        includeContent: true,
+      })
+      return {
+        code: ms.toString(),
+        map,
+      }
     }
   }
 
