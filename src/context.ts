@@ -156,7 +156,7 @@ export default {
     const dynamicLayoutNameBind = node.props.find(
       v => v.type === 7 && v.name === 'bind' && v.arg?.type === 4 && v.arg?.content === 'name' && v.exp?.type === 4 && v.exp.content,
     ) as DirectiveNode
-    const template = node.children.map(v => v.loc.source).join('\n')
+    const slotsSource = node.children.map(v => v.loc.source).join('\n')
     const nodeProps = node.props.filter(prop => !(prop === dynamicLayoutNameBind || prop === staticLayoutNameBind)).map(v => v.loc.source)
 
     if (!(staticLayoutNameBind || dynamicLayoutNameBind))
@@ -166,12 +166,23 @@ export default {
       const props: string[] = [...nodeProps]
       if (staticLayoutNameBind) {
         const layout = staticLayoutNameBind.value?.content
-        return `<layout-${layout}-uni ${props.join(' ')}>${template}</layout-${layout}-uni>`
+        return `<layout-${layout}-uni ${props.join(' ')}>${slotsSource}</layout-${layout}-uni>`
       }
 
       const bind = (dynamicLayoutNameBind.exp as SimpleExpressionNode).content
+      const defaultSlot = node.children.filter((v) => {
+        if (v.type === 1 && v.tagType === 3) {
+          const slot = v.props.find(v => v.type === 7 && v.name === 'slot' && v.arg?.type === 4) as any
+          if (slot)
+            return slot.arg.content === 'default'
+        }
+        return v
+      })
+      const defaultSlotSource = defaultSlot.map(v => v.loc.source).join('\n')
+      const layouts = this.layouts.map((layout, index) => `<layout-${layout.kebabName}-uni v-${index === 0 ? 'if' : 'else-if'}="${bind} ==='${layout.kebabName}'" ${props.join(' ')}>${slotsSource}</layout-${layout.kebabName}-uni>`)
+      layouts.push(`<template v-else>${defaultSlotSource}</template>`)
 
-      return this.layouts.map((layout, index) => `<layout-${layout.kebabName}-uni v-${index === 0 ? 'if' : 'else-if'}="${bind} ==='${layout.kebabName}'" ${props.join(' ')}>${template}</layout-${layout.kebabName}-uni>`).join('\n')
+      return layouts.join('\n')
     }
     else {
       const props: string[] = [...nodeProps]
@@ -179,7 +190,7 @@ export default {
         props.push(`is="layout-${staticLayoutNameBind.value?.content}-uni"`)
       else
         props.push(`:is="\`layout-\${${(dynamicLayoutNameBind.exp as SimpleExpressionNode).content}}-uni\`"`)
-      return `<component ${props.join(' ')}>${template}</component>`
+      return `<component ${props.join(' ')}>${slotsSource}</component>`
     }
   }
 
