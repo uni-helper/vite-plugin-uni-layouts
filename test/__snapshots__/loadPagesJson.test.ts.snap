@@ -1,19 +1,17 @@
-// Vitest Snapshot v1
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`load pages 1`] = `
-{
-  "pages": [
-    {
-      "path": "pages/index/index",
-    },
-    {
-      "layout": "kebabLayout",
-      "path": "pages/index/test",
-    },
-    {
-      "layout": false,
-      "path": "pages/index/disabled",
-    },
-  ],
-}
+[
+  {
+    "path": "pages/index/index",
+  },
+  {
+    "layout": "kebabLayout",
+    "path": "pages/index/test",
+  },
+  {
+    "layout": false,
+    "path": "pages/index/disabled",
+  },
+]
 `;

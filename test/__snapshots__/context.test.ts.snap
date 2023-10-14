@@ -1,31 +1,23 @@
-// Vitest Snapshot v1
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`use default layout 1`] = `
-"
-<template>
-  <layout-default-uni>
-    <div>hello</div>
-  </layout-default-uni>
-</template>
-"
+"<template>
+<layout-default-uni ><div>hello</div></layout-default-uni>
+</template>"
 `;
 
 exports[`use inline layout 1`] = `
-"
-<template>
-  <layout-camel-layout-uni>
-    <main></main>
-  </layout-camel-layout-uni>
-</template>
-"
+"<template>
+    <component is=\\"layout-camelLayout-uni\\">
+        
+<main></main>
+
+    </component>
+  </template>"
 `;
 
 exports[`use test layout 1`] = `
-"
-<template>
-  <layout-kebab-layout-uni>
-    <main></main>
-  </layout-kebab-layout-uni>
-</template>
-"
+"<template>
+<layout-kebab-layout-uni ><main></main></layout-kebab-layout-uni>
+</template>"
 `;

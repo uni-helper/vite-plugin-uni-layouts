@@ -8,32 +8,31 @@ const ctx = new Context(
     cwd: resolve(__dirname, 'fixtures'),
   }),
 )
-
 // const defaultLayout = ctx.layouts.find(l => l.name === 'default') as Layout
 
-it('use default layout', () => {
-  const code = ctx.transform(
+it('use default layout', async () => {
+  const code = await ctx.transform(
     `<template><div>hello</div></template>`,
-    'pages/index/index.vue',
+    `${ctx.options.cwd}/src/pages/index/index.vue`,
   )
   expect(code?.code).toMatchSnapshot()
 })
 
-it('use test layout', () => {
-  const code = ctx.transform(
+it('use test layout', async () => {
+  const code = await ctx.transform(
     `<template><main></main></template>`,
-    'pages/index/test.vue',
+    `${ctx.options.cwd}/src/pages/index/test.vue`,
   )
   expect(code?.code).toMatchSnapshot()
 })
-it('use inline layout', () => {
-  const code = ctx.transform(
+it('use inline layout', async () => {
+  const code = await ctx.transform(
     `<template>
     <UniLayout name="camelLayout">
         <main></main>
     </UniLayout>
   </template>`,
-    'pages/index/disabled.vue',
+    `${ctx.options.cwd}/src/pages/index/disabled.vue`,
   )
   expect(code?.code).toMatchSnapshot()
 })
