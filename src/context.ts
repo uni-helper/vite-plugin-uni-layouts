@@ -3,7 +3,6 @@ import { isMp } from '@uni-helper/uni-env'
 import type { AttributeNode, DirectiveNode, ElementNode, SimpleExpressionNode } from '@vue/compiler-core'
 import { babelParse, walkAST } from 'ast-kit'
 import MagicString from 'magic-string'
-import { resolve } from 'node:path'
 import { kebabCase } from 'scule'
 import type { FSWatcher, ResolvedConfig, ViteDevServer } from 'vite'
 import { normalizePath } from 'vite'
@@ -33,10 +32,7 @@ export class Context {
 
   async setupWatcher(watcher: FSWatcher) {
     watcher.on('change', async (path) => {
-      if (
-        normalizePath(path)
-        === normalizePath(resolve(this.options.cwd, 'src/pages.json'))
-      )
+      if (path.includes('pages.json'))
         this.pages = loadPagesJson('src/pages.json', this.options.cwd)
       // TODO: auto reload
     })
@@ -89,11 +85,11 @@ export class Context {
         enter(node) {
           if (node.type === 'VariableDeclarator') {
             const hasUniLayoutVar
-                  = node.id.type === 'Identifier' && node.id.name === 'uniLayout'
+              = node.id.type === 'Identifier' && node.id.name === 'uniLayout'
             const isRef
-                  = node.init?.type === 'CallExpression'
-                  && node.init.callee.type === 'Identifier'
-                  && node.init.callee.name === 'ref'
+              = node.init?.type === 'CallExpression'
+              && node.init.callee.type === 'Identifier'
+              && node.init.callee.name === 'ref'
             if (hasUniLayoutVar && isRef)
               pageLayoutProps.push('ref="uniLayout"')
           }

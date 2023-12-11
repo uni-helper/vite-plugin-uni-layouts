@@ -1,5 +1,6 @@
 import type { Plugin } from 'vite'
 import { createFilter } from 'vite'
+import chokidar from 'chokidar'
 import { virtualModuleId } from './constant'
 import { Context } from './context'
 import type { UserOptions } from './types'
@@ -13,6 +14,8 @@ export function VitePluginUniLayouts(userOptions: UserOptions = {}): Plugin {
     enforce: 'pre',
     configResolved(config) {
       ctx.config = config
+      if (config.build.watch)
+        ctx.setupWatcher(chokidar.watch(['src/pages.json', 'pages.json']))
     },
     configureServer(server) {
       ctx.setupViteServer(server)
