@@ -8,7 +8,7 @@ exports[`use default layout 1`] = `
 
 exports[`use inline layout 1`] = `
 "<template>
-    <component is=\\"layout-camelLayout-uni\\">
+    <component is="layout-camelLayout-uni">
         
 <main></main>
 

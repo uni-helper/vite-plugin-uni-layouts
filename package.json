@@ -59,24 +59,26 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
-    "@babel/types": "^7.23.0",
-    "@uni-helper/uni-env": "^0.0.3",
-    "@vue/compiler-core": "^3.3.4",
-    "@vue/compiler-sfc": "^3.3.4",
-    "ast-kit": "^0.11.2",
-    "fast-glob": "^3.3.1",
+    "@babel/types": "^7.23.5",
+    "@uni-helper/uni-env": "^0.1.1",
+    "@vue/compiler-core": "^3.3.11",
+    "@vue/compiler-sfc": "^3.3.11",
+    "ast-kit": "^0.11.3",
+    "c12": "^1.5.1",
+    "chokidar": "^3.5.3",
+    "fast-glob": "^3.3.2",
     "jsonc-parser": "^3.2.0",
-    "magic-string": "^0.30.3",
-    "scule": "^1.0.0"
+    "magic-string": "^0.30.5",
+    "scule": "^1.1.1"
   },
   "devDependencies": {
     "@antfu/eslint-config": "1.0.0-beta.26",
-    "@types/node": "^20.5.7",
-    "bumpp": "^9.2.0",
-    "eslint": "^8.51.0",
-    "typescript": "^5.2.2",
+    "@types/node": "^20.10.4",
+    "bumpp": "^9.2.1",
+    "eslint": "^8.55.0",
+    "typescript": "^5.3.3",
     "unbuild": "^2.0.0",
-    "vite": "^4.4.9",
-    "vitest": "^0.34.3"
+    "vite": "^4.4.12",
+    "vitest": "^1.0.4"
   }
 }
