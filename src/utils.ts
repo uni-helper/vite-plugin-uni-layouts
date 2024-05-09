@@ -11,6 +11,7 @@ export function resolveOptions(userOptions: UserOptions = {}): ResolvedOptions {
   return {
     layout: 'default',
     layoutDir: 'src/layouts',
+    pagesJsonPath: 'src/pages.json',
     cwd: process.cwd(),
     ...userOptions,
   }
