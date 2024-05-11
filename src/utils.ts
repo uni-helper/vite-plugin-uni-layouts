@@ -44,8 +44,10 @@ export function getTarget(
 ) {
   if (!(resolvePath.endsWith('.vue') || resolvePath.endsWith('.nvue')))
     return false
-
-  const relativePath = relative(join(cwd, 'src'), resolvePath)
+  let isSrcMode = false
+  if (resolvePath.startsWith(join(cwd, 'src')))
+    isSrcMode = true
+  const relativePath = relative(join(cwd, isSrcMode ? 'src' : ''), resolvePath)
   const fileWithoutExt = path.basename(
     relativePath,
     path.extname(relativePath),
