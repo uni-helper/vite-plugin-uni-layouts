@@ -10,11 +10,6 @@ export interface Options {
    */
   layoutDir: string
   /**
-   * layout dir
-   * @default "src/pages.json"
-   */
-  pagesJsonPath: string
-  /**
    * @default process.cwd()
    */
   cwd: string

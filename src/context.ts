@@ -33,7 +33,7 @@ export class Context {
   async setupWatcher(watcher: FSWatcher) {
     watcher.on('change', async (path) => {
       if (path.includes('pages.json'))
-        this.pages = loadPagesJson(this.options.pagesJsonPath, this.options.cwd)
+        this.pages = loadPagesJson('src/pages.json', this.options.cwd)
       // TODO: auto reload
     })
   }
@@ -44,7 +44,7 @@ export class Context {
       return
     // no pages
     if (!this.pages?.length)
-      this.pages = loadPagesJson(this.options.pagesJsonPath, this.options.cwd)
+      this.pages = loadPagesJson('src/pages.json', this.options.cwd)
 
     const page = getTarget(
       path,
