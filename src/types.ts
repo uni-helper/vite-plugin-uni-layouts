@@ -17,7 +17,9 @@ export interface Options {
 
 export interface UserOptions extends Partial<Options> {}
 
-export interface ResolvedOptions extends Options {}
+export interface ResolvedOptions extends Options {
+  teleportRootEl: string // teleport到layout外，根节点下的元素
+}
 
 export interface Layout {
   name: string

@@ -108,7 +108,11 @@ export class Context {
     }
     else {
       if (sfc.template?.loc.start.offset && sfc.template?.loc.end.offset)
-        ms.overwrite(sfc.template?.loc.start.offset, sfc.template?.loc.end.offset, `\n<layout-${pageLayout?.kebabName}-uni ${pageLayoutProps.join(' ')}>${sfc.template.content}</layout-${pageLayout?.kebabName}-uni>\n`)
+        if (this.options.teleportRootEl) {
+          ms.overwrite(sfc.template?.loc.start.offset, sfc.template?.loc.end.offset, `\n${this.options.teleportRootEl}\n<layout-${pageLayout?.kebabName}-uni ${pageLayoutProps.join(' ')}>${sfc.template.content}</layout-${pageLayout?.kebabName}-uni>\n`)
+        } else {
+          ms.overwrite(sfc.template?.loc.start.offset, sfc.template?.loc.end.offset, `<layout-${pageLayout?.kebabName}-uni ${pageLayoutProps.join(' ')}>${sfc.template.content}</layout-${pageLayout?.kebabName}-uni>\n`)
+        }
     }
 
     if (ms.hasChanged()) {
