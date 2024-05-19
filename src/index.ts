@@ -29,7 +29,7 @@ export function VitePluginUniLayouts(userOptions: UserOptions = {}): Plugin {
         return ctx.virtualModule()
     },
     transform(code, id) {
-      const filter = createFilter('src/main.(ts|js)')
+      const filter = createFilter(['src/main.(ts|js)', 'main.(ts|js)'])
       if (filter(id))
         return ctx.importLayoutComponents(code, id)
 

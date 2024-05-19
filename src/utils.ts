@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path, { join, relative, resolve } from 'node:path'
 import process from 'node:process'
 import type { SFCDescriptor } from '@vue/compiler-sfc'
@@ -17,7 +17,13 @@ export function resolveOptions(userOptions: UserOptions = {}): ResolvedOptions {
 }
 
 export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()) {
-  const pagesJsonRaw = readFileSync(resolve(cwd, path), {
+  let pageJsonPath = resolve(cwd, path)
+  if (!existsSync(pageJsonPath)) {
+    pageJsonPath = resolve(cwd, 'pages.json')
+    if (!existsSync(pageJsonPath))
+      throw new Error("Can't find pages.json")
+  }
+  const pagesJsonRaw = readFileSync(pageJsonPath, {
     encoding: 'utf-8',
   })
   const { pages = [], subPackages = [] } = jsonParse(pagesJsonRaw)
@@ -43,8 +49,10 @@ export function getTarget(
 ) {
   if (!(resolvePath.endsWith('.vue') || resolvePath.endsWith('.nvue')))
     return false
-
-  const relativePath = relative(join(cwd, 'src'), resolvePath)
+  let isSrcMode = false
+  if (resolvePath.startsWith(join(cwd, 'src')))
+    isSrcMode = true
+  const relativePath = relative(join(cwd, isSrcMode ? 'src' : ''), resolvePath)
   const fileWithoutExt = path.basename(
     relativePath,
     path.extname(relativePath),
