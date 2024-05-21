@@ -7,6 +7,10 @@ import { parse as jsonParse } from 'jsonc-parser'
 import { normalizePath } from 'vite'
 import type { Page, ResolvedOptions, UserOptions } from './types'
 
+function isCLIMode(path: string) {
+  return path.includes('src/')
+}
+
 export function resolveOptions(userOptions: UserOptions = {}): ResolvedOptions {
   return {
     layout: 'default',
@@ -18,11 +22,12 @@ export function resolveOptions(userOptions: UserOptions = {}): ResolvedOptions {
 
 export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()) {
   let pageJsonPath = resolve(cwd, path)
-  if (!existsSync(pageJsonPath)) {
+  if (!isCLIMode(path))
     pageJsonPath = resolve(cwd, 'pages.json')
-    if (!existsSync(pageJsonPath))
-      throw new Error("Can't find pages.json")
-  }
+
+  if (!existsSync(pageJsonPath))
+    throw new Error('Can\'t find pages.json')
+
   const pagesJsonRaw = readFileSync(pageJsonPath, {
     encoding: 'utf-8',
   })
@@ -49,10 +54,8 @@ export function getTarget(
 ) {
   if (!(resolvePath.endsWith('.vue') || resolvePath.endsWith('.nvue')))
     return false
-  let isSrcMode = false
-  if (resolvePath.startsWith(join(cwd, 'src')))
-    isSrcMode = true
-  const relativePath = relative(join(cwd, isSrcMode ? 'src' : ''), resolvePath)
+
+  const relativePath = relative(join(cwd, isCLIMode(resolvePath) ? 'src' : ''), resolvePath)
   const fileWithoutExt = path.basename(
     relativePath,
     path.extname(relativePath),
