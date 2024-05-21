@@ -17,6 +17,9 @@ export function VitePluginUniLayouts(userOptions: UserOptions = {}): Plugin {
       if (config.build.watch)
         ctx.setupWatcher(chokidar.watch(['src/pages.json', 'pages.json']))
     },
+    buildStart(options) {
+      ctx.pageJsonPath = JSON.stringify(options.input).includes('src/main') ? 'src/pages.json' : 'pages.json'
+    },
     configureServer(server) {
       ctx.setupViteServer(server)
     },
