@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path, { join, relative, resolve, sep } from 'node:path'
 import process from 'node:process'
 import type { SFCDescriptor } from '@vue/compiler-sfc'
@@ -9,6 +9,10 @@ import type { Page, ResolvedOptions, UserOptions } from './types'
 
 function slash(str: string) {
   return str.replace(/\\|\//g, sep)
+}
+
+export function getPageJsonPath(cwd = process.cwd()) {
+  return existsSync(normalizePath(join(cwd, 'src'))) ? 'src/pages.json' : 'pages.json'
 }
 
 export function resolveOptions(userOptions: UserOptions = {}): ResolvedOptions {
@@ -24,6 +28,7 @@ export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()) {
   const pagesJsonRaw = readFileSync(resolve(cwd, path), {
     encoding: 'utf-8',
   })
+
   const { pages = [], subPackages = [] } = jsonParse(pagesJsonRaw)
 
   return [

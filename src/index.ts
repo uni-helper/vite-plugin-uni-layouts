@@ -4,11 +4,13 @@ import chokidar from 'chokidar'
 import { virtualModuleId } from './constant'
 import { Context } from './context'
 import type { UserOptions } from './types'
-import { resolveOptions } from './utils'
+import { getPageJsonPath, resolveOptions } from './utils'
 
 export function VitePluginUniLayouts(userOptions: UserOptions = {}): Plugin {
   const options = resolveOptions(userOptions)
   const ctx = new Context(options)
+  ctx.pageJsonPath = getPageJsonPath(options.cwd)
+
   return {
     name: 'vite-plugin-uni-layouts',
     enforce: 'pre',
@@ -16,9 +18,6 @@ export function VitePluginUniLayouts(userOptions: UserOptions = {}): Plugin {
       ctx.config = config
       if (config.build.watch)
         ctx.setupWatcher(chokidar.watch(['src/pages.json', 'pages.json']))
-    },
-    buildStart(options) {
-      ctx.pageJsonPath = JSON.stringify(options.input).includes('src/main') ? 'src/pages.json' : 'pages.json'
     },
     configureServer(server) {
       ctx.setupViteServer(server)
