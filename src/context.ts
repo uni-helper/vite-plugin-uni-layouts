@@ -15,11 +15,13 @@ export class Context {
   options: ResolvedOptions
   pages: Page[]
   layouts: Layout[]
+  pageJsonPath: string
   private _server?: ViteDevServer
   constructor(options: ResolvedOptions) {
     this.options = options
     this.pages = []
     this.layouts = scanLayouts(options.layoutDir, options.cwd)
+    this.pageJsonPath = 'src/pages.json'
   }
 
   setupViteServer(server: ViteDevServer) {
@@ -33,7 +35,8 @@ export class Context {
   async setupWatcher(watcher: FSWatcher) {
     watcher.on('change', async (path) => {
       if (path.includes('pages.json'))
-        this.pages = loadPagesJson('src/pages.json', this.options.cwd)
+        this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
+
       // TODO: auto reload
     })
   }
@@ -44,7 +47,7 @@ export class Context {
       return
     // no pages
     if (!this.pages?.length)
-      this.pages = loadPagesJson('src/pages.json', this.options.cwd)
+      this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
 
     const page = getTarget(
       path,

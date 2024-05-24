@@ -4,11 +4,13 @@ import chokidar from 'chokidar'
 import { virtualModuleId } from './constant'
 import { Context } from './context'
 import type { UserOptions } from './types'
-import { resolveOptions } from './utils'
+import { getPageJsonPath, resolveOptions } from './utils'
 
 export function VitePluginUniLayouts(userOptions: UserOptions = {}): Plugin {
   const options = resolveOptions(userOptions)
   const ctx = new Context(options)
+  ctx.pageJsonPath = getPageJsonPath(options.cwd)
+
   return {
     name: 'vite-plugin-uni-layouts',
     enforce: 'pre',

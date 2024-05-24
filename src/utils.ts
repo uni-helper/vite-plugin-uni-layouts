@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs'
-import path, { join, relative, resolve } from 'node:path'
+import path, { join, relative, resolve, sep } from 'node:path'
 import process from 'node:process'
 import type { SFCDescriptor } from '@vue/compiler-sfc'
 import { parse as VueParser } from '@vue/compiler-sfc'
@@ -7,8 +7,12 @@ import { parse as jsonParse } from 'jsonc-parser'
 import { normalizePath } from 'vite'
 import type { Page, ResolvedOptions, UserOptions } from './types'
 
-function isCLIMode(path: string) {
-  return path.includes('src/')
+function slash(str: string) {
+  return str.replace(/\\|\//g, sep)
+}
+
+export function getPageJsonPath(cwd = process.cwd()) {
+  return existsSync(normalizePath(join(cwd, 'src'))) ? 'src/pages.json' : 'pages.json'
 }
 
 export function resolveOptions(userOptions: UserOptions = {}): ResolvedOptions {
@@ -21,16 +25,10 @@ export function resolveOptions(userOptions: UserOptions = {}): ResolvedOptions {
 }
 
 export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()) {
-  let pageJsonPath = resolve(cwd, path)
-  if (!isCLIMode(path))
-    pageJsonPath = resolve(cwd, 'pages.json')
-
-  if (!existsSync(pageJsonPath))
-    throw new Error('Can\'t find pages.json')
-
-  const pagesJsonRaw = readFileSync(pageJsonPath, {
+  const pagesJsonRaw = readFileSync(resolve(cwd, path), {
     encoding: 'utf-8',
   })
+
   const { pages = [], subPackages = [] } = jsonParse(pagesJsonRaw)
 
   return [
@@ -55,7 +53,9 @@ export function getTarget(
   if (!(resolvePath.endsWith('.vue') || resolvePath.endsWith('.nvue')))
     return false
 
-  const relativePath = relative(join(cwd, isCLIMode(resolvePath) ? 'src' : ''), resolvePath)
+  const hasSrcDir = slash(resolvePath).includes(join(cwd, 'src'))
+
+  const relativePath = relative(join(cwd, hasSrcDir ? 'src' : ''), resolvePath)
   const fileWithoutExt = path.basename(
     relativePath,
     path.extname(relativePath),
