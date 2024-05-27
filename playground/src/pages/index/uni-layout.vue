@@ -21,3 +21,9 @@ function handleSwitch() {
     <template #footer>uni-layout footer</template>
   </uni-layout>
 </template>
+
+<route lang="json">
+{
+  "layout": false
+}
+</route>
