@@ -6,15 +6,15 @@ import UniPages from '@uni-helper/vite-plugin-uni-pages'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    // @ts-expect-error ignore
     UniPages({
       subPackages: [
         'pages-sub',
       ],
       dts: 'src/uni-pages.d.ts',
     }),
-    // @ts-expect-error ignore
-    UniLayouts(),
+    UniLayouts({
+      teleportRootEl: '<page-meta :page-style="\'overflow:\'+(popShow?\'hidden\':\'visible\')"></page-meta>'
+    }),
     uni(),
   ],
 })
