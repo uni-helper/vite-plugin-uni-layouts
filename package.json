@@ -63,7 +63,7 @@
     "@uni-helper/uni-env": "^0.1.1",
     "@vue/compiler-core": "^3.3.11",
     "@vue/compiler-sfc": "^3.3.11",
-    "ast-kit": "^0.11.3",
+    "ast-kit": "^1.0.0",
     "c12": "^1.5.1",
     "chokidar": "^3.5.3",
     "fast-glob": "^3.3.2",
