@@ -2,7 +2,7 @@
   "name": "@uni-helper/vite-plugin-uni-layouts",
   "type": "module",
   "version": "0.1.10",
-  "packageManager": "pnpm@8.9.0",
+  "packageManager": "pnpm@8.15.9",
   "description": "Customizable layouts framework for uni-app applications using Vite.",
   "author": "KeJun",
   "license": "MIT",
@@ -63,7 +63,7 @@
     "@uni-helper/uni-env": "^0.1.1",
     "@vue/compiler-core": "^3.3.11",
     "@vue/compiler-sfc": "^3.3.11",
-    "ast-kit": "^0.11.3",
+    "ast-kit": "^0.12.0",
     "c12": "^1.5.1",
     "chokidar": "^3.5.3",
     "fast-glob": "^3.3.2",
@@ -72,7 +72,7 @@
     "scule": "^1.1.1"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "1.0.0-beta.26",
+    "@antfu/eslint-config": "1.2.1",
     "@types/node": "^20.10.4",
     "bumpp": "^9.2.1",
     "eslint": "^8.55.0",
