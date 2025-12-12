@@ -40,10 +40,11 @@ export class Context {
         const prePages = this.pages
         this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
 
-        // 找出layout发生变化的页面
-        const changedPages = this.pages.filter((newPage, index) => {
-          const prePage = prePages[index]
-          return prePage && prePage.layout !== newPage.layout
+        // 找出 layout 发生变化的页面（按 path 对齐）
+        const preByPath = new Map(prePages.map(p => [normalizePath(p.path), p]))
+        const changedPages = this.pages.filter((newPage) => {
+          const pre = preByPath.get(normalizePath(newPage.path))
+          return pre && pre.layout !== newPage.layout
         })
 
         // 失效对应的模块，触发 transform
