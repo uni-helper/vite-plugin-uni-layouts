@@ -8,21 +8,30 @@ import MagicString from 'magic-string'
 import { kebabCase } from 'scule'
 import type { FSWatcher, ResolvedConfig, ViteDevServer } from 'vite'
 import { normalizePath } from 'vite'
+import { virtualModuleId } from './constant'
 import { scanLayouts } from './scan'
 import type { Layout, Page, ResolvedOptions } from './types'
-import { getTarget, invalidateAndReload, loadPagesJson, parseSFC } from './utils'
+import { getTarget, invalidateAndReload, isLayoutFile, loadPagesJson, parseSFC } from './utils'
 
 export class Context {
   config!: ResolvedConfig
   options: ResolvedOptions
   pages: Page[]
+  /**
+   * layouts 列表
+   */
   layouts: Layout[]
   pageJsonPath: string
+  /**
+   * layouts 目录路径
+   */
+  layoutDirPath: string
   private _server?: ViteDevServer
   constructor(options: ResolvedOptions) {
     this.options = options
     this.pages = []
-    this.layouts = scanLayouts(options.layoutDir, options.cwd)
+    this.layoutDirPath = resolve(options.cwd, options.layoutDir)
+    this.layouts = scanLayouts(this.layoutDirPath)
     this.pageJsonPath = 'src/pages.json'
   }
 
@@ -36,7 +45,7 @@ export class Context {
 
   async setupWatcher(watcher: FSWatcher) {
     watcher.on('change', async (path) => {
-      if (!path.includes('pages.json'))
+      if (!path.includes(this.pageJsonPath))
         return
 
       const prePages = this.pages
@@ -75,6 +84,38 @@ export class Context {
         })
       }
     })
+
+    watcher.on('add', async (path) => {
+      if (!isLayoutFile(path, this.layoutDirPath))
+        return
+      this.reloadLayouts()
+    })
+
+    watcher.on('unlink', async (path) => {
+      if (!isLayoutFile(path, this.layoutDirPath))
+        return
+      this.reloadLayouts()
+    })
+  }
+
+  /** 重新扫描 layouts 目录，生成 layouts 列表，并触发 HMR 更新 */
+  reloadLayouts() {
+    this.layouts = scanLayouts(this.layoutDirPath)
+
+    if (!this._server)
+      return
+
+    // 使虚拟模块失效并重新加载
+    const virtualModule = this._server.moduleGraph.getModuleById(virtualModuleId)
+    if (virtualModule) {
+      this._server.moduleGraph.invalidateModule(virtualModule)
+      this._server.reloadModule(virtualModule)
+    }
+
+    // 使 main.ts/main.js 失效，触发 transform 中的 importLayoutComponents 重新执行
+    const mainFiles = ['/src/main.ts', '/src/main.js', '/main.ts', '/main.js']
+    for (const mainFile of mainFiles)
+      invalidateAndReload(mainFile, this._server)
   }
 
   async transform(code: string, path: string) {
@@ -138,7 +179,7 @@ export class Context {
 
     if (disabled) {
       // find dynamic layout
-      const uniLayoutNode = sfc.template?.ast.children.find(v => v.type === 1 && kebabCase(v.tag) === 'uni-layout') as ElementNode
+      const uniLayoutNode = sfc.template?.ast?.children.find(v => v.type === 1 && kebabCase(v.tag) === 'uni-layout') as ElementNode
       // not found
       if (!uniLayoutNode)
         return

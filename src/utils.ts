@@ -120,3 +120,10 @@ export async function invalidateAndReload(filePath: string, server?: ViteDevServ
     return false
   }
 }
+
+/** 检查路径是否在 layouts 目录下 */
+export function isLayoutFile(filePath: string, layoutDirPath: string) {
+  const normalizedPath = normalizePath(filePath)
+  const normalizedLayoutDir = normalizePath(layoutDirPath)
+  return normalizedPath.startsWith(normalizedLayoutDir) && (normalizedPath.endsWith('.vue') || normalizedPath.endsWith('.nvue'))
+}
