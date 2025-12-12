@@ -36,41 +36,43 @@ export class Context {
 
   async setupWatcher(watcher: FSWatcher) {
     watcher.on('change', async (path) => {
-      if (path.includes('pages.json')) {
-        const prePages = this.pages
-        this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
+      if (!path.includes('pages.json'))
+        return
 
-        // 找出 layout 发生变化的页面（按 path 对齐）
-        const preByPath = new Map(prePages.map(p => [normalizePath(p.path), p]))
-        const changedPages = this.pages.filter((newPage) => {
-          const pre = preByPath.get(normalizePath(newPage.path))
-          return pre && pre.layout !== newPage.layout
+      const prePages = this.pages
+      this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
+
+      // 找出 layout 发生变化的页面（按 path 对齐）
+      const preByPath = new Map(prePages.map(p => [normalizePath(p.path), p]))
+      const changedPages = this.pages.filter((newPage) => {
+        const pre = preByPath.get(normalizePath(newPage.path))
+        return pre && pre.layout !== newPage.layout
+      })
+
+      const viteRoot = this._server!.config.root
+
+      if (!this._server || !changedPages.length)
+        return
+
+      // 失效对应的模块，触发 transform
+      for (const page of changedPages) {
+        // 使 .vue 文件失效, 如果存在的话
+        const pagePathVue = normalizePath(
+          resolve('/src', `${page.path}.vue`),
+        )
+        fs.access(resolve(viteRoot, 'src', `${page.path}.vue`), fs.constants.F_OK, (err) => {
+          if (!err)
+            invalidateAndReload(pagePathVue, this._server)
         })
 
-        const viteRoot = this._server!.config.root
-
-        // 失效对应的模块，触发 transform
-        if (this._server && changedPages.length > 0) {
-          for (const page of changedPages) {
-            // 使 .vue 文件失效, 如果存在的话
-            const pagePathVue = normalizePath(
-              resolve('/src', `${page.path}.vue`),
-            )
-            fs.access(resolve(viteRoot, 'src', `${page.path}.vue`), fs.constants.F_OK, (err) => {
-              if (!err)
-                invalidateAndReload(pagePathVue, this._server)
-            })
-
-            // 使 .nvue 文件失效, 如果存在的话
-            const pagePathNv = normalizePath(
-              resolve('/src', `${page.path}.nvue`),
-            )
-            fs.access(resolve(viteRoot, 'src', `${page.path}.nvue`), fs.constants.F_OK, (err) => {
-              if (!err)
-                invalidateAndReload(pagePathNv, this._server)
-            })
-          }
-        }
+        // 使 .nvue 文件失效, 如果存在的话
+        const pagePathNv = normalizePath(
+          resolve('/src', `${page.path}.nvue`),
+        )
+        fs.access(resolve(viteRoot, 'src', `${page.path}.nvue`), fs.constants.F_OK, (err) => {
+          if (!err)
+            invalidateAndReload(pagePathNv, this._server)
+        })
       }
     })
   }
