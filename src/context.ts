@@ -47,6 +47,8 @@ export class Context {
           return pre && pre.layout !== newPage.layout
         })
 
+        const viteRoot = this._server!.config.root
+
         // 失效对应的模块，触发 transform
         if (this._server && changedPages.length > 0) {
           for (const page of changedPages) {
@@ -54,7 +56,7 @@ export class Context {
             const pagePathVue = normalizePath(
               resolve('/src', `${page.path}.vue`),
             )
-            fs.access(resolve('src', `${page.path}.vue`), fs.constants.F_OK, (err) => {
+            fs.access(resolve(viteRoot, 'src', `${page.path}.vue`), fs.constants.F_OK, (err) => {
               if (!err)
                 invalidateAndReload(pagePathVue, this._server)
             })
@@ -63,7 +65,7 @@ export class Context {
             const pagePathNv = normalizePath(
               resolve('/src', `${page.path}.nvue`),
             )
-            fs.access(resolve('src', `${page.path}.nvue`), fs.constants.F_OK, (err) => {
+            fs.access(resolve(viteRoot, 'src', `${page.path}.nvue`), fs.constants.F_OK, (err) => {
               if (!err)
                 invalidateAndReload(pagePathNv, this._server)
             })
