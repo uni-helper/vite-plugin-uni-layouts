@@ -1,3 +1,5 @@
+import { resolve } from 'node:path'
+import fs from 'node:fs'
 import type { Node } from '@babel/types'
 import { isMp } from '@uni-helper/uni-env'
 import type { AttributeNode, DirectiveNode, ElementNode, SimpleExpressionNode } from '@vue/compiler-core'
@@ -8,7 +10,7 @@ import type { FSWatcher, ResolvedConfig, ViteDevServer } from 'vite'
 import { normalizePath } from 'vite'
 import { scanLayouts } from './scan'
 import type { Layout, Page, ResolvedOptions } from './types'
-import { getTarget, loadPagesJson, parseSFC } from './utils'
+import { getTarget, invalidateAndReload, loadPagesJson, parseSFC } from './utils'
 
 export class Context {
   config!: ResolvedConfig
@@ -34,10 +36,39 @@ export class Context {
 
   async setupWatcher(watcher: FSWatcher) {
     watcher.on('change', async (path) => {
-      if (path.includes('pages.json'))
+      if (path.includes('pages.json')) {
+        const prePages = this.pages
         this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
 
-      // TODO: auto reload
+        // 找出layout发生变化的页面
+        const changedPages = this.pages.filter((newPage, index) => {
+          const prePage = prePages[index]
+          return prePage && prePage.layout !== newPage.layout
+        })
+
+        // 失效对应的模块，触发 transform
+        if (this._server && changedPages.length > 0) {
+          for (const page of changedPages) {
+            // 使 .vue 文件失效, 如果存在的话
+            const pagePathVue = normalizePath(
+              resolve('/src', `${page.path}.vue`),
+            )
+            fs.access(resolve('src', `${page.path}.vue`), fs.constants.F_OK, (err) => {
+              if (!err)
+                invalidateAndReload(pagePathVue, this._server)
+            })
+
+            // 使 .nvue 文件失效, 如果存在的话
+            const pagePathNv = normalizePath(
+              resolve('/src', `${page.path}.nvue`),
+            )
+            fs.access(resolve('src', `${page.path}.nvue`), fs.constants.F_OK, (err) => {
+              if (!err)
+                invalidateAndReload(pagePathNv, this._server)
+            })
+          }
+        }
+      }
     })
   }
 
