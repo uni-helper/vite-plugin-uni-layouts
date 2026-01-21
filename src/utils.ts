@@ -29,7 +29,7 @@ export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()) {
     encoding: 'utf-8',
   })
 
-  const { pages = [], subPackages = [] } = jsonParse(pagesJsonRaw)
+  const { pages = [], subPackages = [] } = parsePagesJson(pagesJsonRaw, process.env.UNI_PLATFORM || '')
 
   return [
     ...pages,
@@ -42,6 +42,97 @@ export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()) {
       })
       .flat(),
   ]
+}
+
+/**
+ * parsePagesJson
+ * The `parsePagesJson` exported by `@dcloudio/uni-cli-shared` does not support parsing `subPackage` in the miniProgram environment.
+ * Therefore, a custom parsePagesJson implementation is provided here.
+ * @param content The content of the pages.json file.
+ * @param platform The platform to target.
+ * @returns The parsed pages.json object.
+ */
+export function parsePagesJson(content: string, platform: string) {
+  try {
+    const preprocessed = preprocess(content, platform)
+    return jsonParse(preprocessed)
+  }
+  catch {
+    return {}
+  }
+}
+
+function getPlatformContext(platform: string): Record<string, boolean> {
+  const ctx: Record<string, boolean> = {
+    VUE3: true,
+  }
+  const p = platform.toUpperCase()
+  if (p) {
+    ctx[p] = true
+    if (p.startsWith('APP-'))
+      ctx.APP = true
+
+    if (p.startsWith('MP-'))
+      ctx.MP = true
+
+    if (p === 'H5' || p === 'WEB') {
+      ctx.H5 = true
+      ctx.WEB = true
+    }
+  }
+  return ctx
+}
+
+function evaluate(condition: string, context: Record<string, boolean>): boolean {
+  const code = condition.replace(/[a-zA-Z0-9_$-]+/g, (match) => {
+    if (match === 'true' || match === 'false')
+      return match
+    return context[match] ? 'true' : 'false'
+  })
+  try {
+    // eslint-disable-next-line no-new-func
+    return new Function(`return !!(${code})`)()
+  }
+  catch {
+    return false
+  }
+}
+
+function preprocess(content: string, platform: string) {
+  const context = getPlatformContext(platform)
+  const lines = content.split('\n')
+  const result: string[] = []
+  const stack: boolean[] = []
+
+  const shouldInclude = () => stack.every(v => v)
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith('//')) {
+      const comment = trimmed.substring(2).trim()
+      if (comment.startsWith('#ifdef')) {
+        stack.push(evaluate(comment.substring(6).trim(), context))
+        result.push('')
+        continue
+      }
+      if (comment.startsWith('#ifndef')) {
+        stack.push(!evaluate(comment.substring(7).trim(), context))
+        result.push('')
+        continue
+      }
+      if (comment.startsWith('#endif')) {
+        stack.pop()
+        result.push('')
+        continue
+      }
+    }
+
+    if (shouldInclude())
+      result.push(line)
+    else
+      result.push('')
+  }
+  return result.join('\n')
 }
 
 export function getTarget(
