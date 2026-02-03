@@ -1,12 +1,10 @@
-import { basename, dirname, extname, join, relative, resolve } from 'node:path'
-import process from 'node:process'
+import { basename, dirname, extname, join, relative } from 'node:path'
 import fg from 'fast-glob'
 import { camelCase, kebabCase, pascalCase, splitByCase } from 'scule'
 import { normalizePath } from 'vite'
 import type { Layout } from './types'
 
-export function scanLayouts(dir = 'src/layouts', cwd = process.cwd()) {
-  dir = resolve(cwd, dir)
+export function scanLayouts(dir: string) {
   const files = fg.sync('**/*.vue', {
     onlyFiles: true,
     ignore: ['node_modules', '.git', '**/__*__/*'],

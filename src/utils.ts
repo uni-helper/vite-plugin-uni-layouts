@@ -5,6 +5,7 @@ import type { SFCDescriptor } from '@vue/compiler-sfc'
 import { parse as VueParser } from '@vue/compiler-sfc'
 import { parse as jsonParse } from 'jsonc-parser'
 import { normalizePath } from 'vite'
+import type { ViteDevServer } from 'vite'
 import type { Page, ResolvedOptions, UserOptions } from './types'
 
 function slash(str: string) {
@@ -91,4 +92,38 @@ export async function parseSFC(code: string): Promise<SFCDescriptor> {
       '[vite-plugin-uni-layouts] Vue3\'s "@vue/compiler-sfc" is required.',
     )
   }
+}
+
+// 使模块失效并重新加载
+export async function invalidateAndReload(filePath: string, server?: ViteDevServer) {
+  if (!server) {
+    console.error('Vite server not available.')
+    return false
+  }
+
+  const module = await server.moduleGraph.getModuleByUrl(filePath)
+
+  if (module) {
+    // 1. 使模块失效
+    // 这会清除模块的 transform 缓存，并标记它需要重新加载
+    // 同时也会遍历所有导入它的模块并传递失效状态
+    server.moduleGraph.invalidateModule(module)
+
+    // 2. 通知 HMR
+    // 告诉浏览器该模块（及其所有依赖它的模块）需要重新加载
+    server.reloadModule(module)
+
+    return true
+  }
+  else {
+    console.warn(`[vite-plugin-uni-layouts] ❌ Module not found in module graph: ${filePath}`)
+    return false
+  }
+}
+
+/** 检查路径是否在 layouts 目录下 */
+export function isLayoutFile(filePath: string, layoutDirPath: string) {
+  const normalizedPath = normalizePath(filePath)
+  const normalizedLayoutDir = normalizePath(layoutDirPath)
+  return normalizedPath.startsWith(normalizedLayoutDir) && (normalizedPath.endsWith('.vue') || normalizedPath.endsWith('.nvue'))
 }
