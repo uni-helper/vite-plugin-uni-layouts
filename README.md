@@ -36,64 +36,152 @@ pnpm i -D @uni-helper/vite-plugin-uni-layouts
 ```ts
 // vite.config.mts
 import Uni from '@uni-helper/plugin-uni'
+// 或
+// import dcloudioUni from '@dcloudio/vite-plugin-uni'
+// const Uni = dcloudioUni.default || dcloudioUni
 import UniLayouts from '@uni-helper/vite-plugin-uni-layouts'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [
-    UniLayouts(), // 要在 Uni() 之前
+    UniLayouts(), // 需要在 Uni() 之前调用
     Uni(),
   ],
 })
 ```
 
-`@uni-helper/plugin-uni` 只做一件事：把 CJS 的 `@dcloudio/vite-plugin-uni` 转成 ESM 默认导出。不装它也行，自己取一次 `.default`：`const Uni = (dcloudioUni as unknown as { default?: typeof dcloudioUni }).default ?? dcloudioUni`。
+### 和 vite-plugin-uni-pages 一起用
+
+页面配置放在 pages.json 里，手写很麻烦，多数项目用 [vite-plugin-uni-pages](https://github.com/uni-helper/vite-plugin-uni-pages) 生成。两个一起用时这样写：
+
+```ts
+// vite.config.mts
+import Uni from '@uni-helper/plugin-uni'
+import UniLayouts from '@uni-helper/vite-plugin-uni-layouts'
+import UniPages from '@uni-helper/vite-plugin-uni-pages'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  plugins: [
+    UniPages({
+      subPackages: [
+        'src/pages-sub',
+      ],
+      dts: 'src/uni-pages.d.ts',
+    }),
+    UniLayouts(),
+    Uni(),
+  ],
+})
+```
+
+`UniPages()` 要放在 `Uni()` 前面，这是 uni-pages 的要求。`subPackages` 和 `dts` 是它的选项，跟布局无关：`subPackages` 的目录相对 Vite root，`dts` 是生成类型声明的路径。布局插件不用额外配置，它读的就是 uni-pages 写出来的 pages.json。
+
+pages.json 的位置是固定的：项目里有 `src` 目录时读 `src/pages.json`，否则读根目录的 `pages.json`。uni-pages 的 `outDir` 保持默认的 `src` 即可，改成别的目录后布局插件找不到页面。
+
+想让 `definePage` 有类型提示，把 uni-pages 的 client 类型加进 tsconfig 的 `types`：
+
+```json
+{
+  "compilerOptions": {
+    "types": ["@dcloudio/types", "@uni-helper/vite-plugin-uni-pages/client"]
+  }
+}
+```
 
 ### 创建布局
 
-在 `src/layouts` 下新建布局组件，文件名就是布局名。
+布局放在 `src/layouts`（`layoutDir` 选项可以换目录）。布局就是普通 Vue 组件，默认插槽放页面内容，具名插槽给页面留着位置。
 
 ```vue
 <!-- src/layouts/default.vue -->
 <template>
-  <view>
-    <slot>main</slot>
+  <view class="layout">
+    <view class="header">
+      <slot name="header">
+        默认标题
+      </slot>
+    </view>
+    <view class="main">
+      <slot>main</slot>
+    </view>
+    <view class="footer">
+      <slot name="footer" />
+    </view>
   </view>
 </template>
+
+<style>
+.layout {
+  padding: 24rpx;
+}
+</style>
 ```
 
-`posts.vue`、`Posts.vue`、`posts/index.vue` 都得到 `posts`。带目录的布局保留目录段，`the/nesting/layout.vue` 得到 `theNestingLayout`；目录名和文件名重复的段只算一次。页面配置里写的是 camelCase 形式。
+具名插槽要靠页面上的 `<uni-layout>` 填，见[动态布局](#动态布局)。
+
+布局名由文件路径推导，页面配置里写的是下面第二列：
+
+| 文件 | 布局名 |
+| --- | --- |
+| `src/layouts/default.vue` | `default` |
+| `src/layouts/posts.vue` | `posts` |
+| `src/layouts/Posts.vue` | `posts` |
+| `src/layouts/posts/index.vue` | `posts` |
+| `src/layouts/kebab-layout.vue` | `kebabLayout` |
+| `src/layouts/no-index/index.vue` | `noIndex` |
+| `src/layouts/blog/posts.vue` | `blogPosts` |
+| `src/layouts/the/nesting/layout.vue` | `theNestingLayout` |
+
+规则有三条：文件名是 `index` 时取目录名；目录段和文件名从头逐段比较，重复的段只算一次，所以 `posts/posts.vue` 也是 `posts`；剩下的部分转成 camelCase，所以 `kebab-layout.vue` 是 `kebabLayout`。
 
 ### 应用布局
 
-页面默认用 `default` 布局。换布局就在 pages.json 里给页面写 `layout`：
+页面默认用 `default` 布局。换布局时在页面配置里写布局名。
+
+用 uni-pages 就写进 `definePage` 宏，构建时宏会被删掉，配置由 uni-pages 写进 pages.json：
+
+```vue
+<!-- src/pages/posts/index.vue -->
+<script setup lang="ts">
+definePage({
+  layout: 'posts',
+})
+</script>
+
+<template>
+  <view>帖子列表</view>
+</template>
+```
+
+没装 uni-pages 就直接写 pages.json：
 
 ```json
 {
   "pages": [
     {
-      "path": "pages/index/index",
+      "path": "pages/posts/index",
       "layout": "posts"
     }
   ]
 }
 ```
 
-配合 [vite-plugin-uni-pages](https://github.com/uni-helper/vite-plugin-uni-pages) 时写进 `definePage` 宏，由它生成 pages.json：
+布局名写错不会报错，页面会按没有布局渲染，排查时先核对布局名。
+
+### 禁用布局
+
+`layout: false` 表示这个页面不套布局，模板原样输出。用 uni-pages 时写进 `definePage`：
 
 ```vue
 <script setup lang="ts">
 definePage({
-  layout: 'posts',
+  layout: false,
 })
 </script>
 ```
 
-`<route>` 自定义块在 uni-pages 0.4 就移除了，写在那里不会进 pages.json。
-
-### 禁用布局
-
-`layout: false` 表示页面不套布局，模板原样输出。这种页面要自己用 `<uni-layout>` 指定布局。
+手写 pages.json 时写法一样：
 
 ```json
 {
@@ -104,11 +192,15 @@ definePage({
 
 ### 动态布局
 
-页面禁用布局后，用内置组件 `<uni-layout>` 指定布局。`name` 支持绑定变量，组件上的其他属性会透传给布局组件。
+页面禁用布局之后，用内置组件 `<uni-layout>` 指定布局。下面的例子里 `layout: false` 和 `<uni-layout>` 缺一个都不行：
 
 ```vue
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
+
+definePage({
+  layout: false,
+})
 
 const name = ref('default')
 </script>
@@ -126,14 +218,14 @@ const name = ref('default')
 </template>
 ```
 
-小程序端展开成每个布局的 `v-if` / `v-else-if` 链，H5 端生成一个 `<component :is>`。
+`name` 写布局名，也支持绑定变量；`<uni-layout>` 上的其他属性会透传给布局组件。小程序端展开成每个布局的 `v-if` / `v-else-if` 链，H5 端生成一个 `<component :is>`。
 
 ### ref
 
-声明一个叫 `uniLayout` 的 ref，插件会给包裹页面的布局组件加上 `ref="uniLayout"`。
+在页面的 script setup 里声明一个叫 `uniLayout` 的 ref，插件会给包裹页面的布局组件加上 `ref="uniLayout"`，拿到的就是布局组件实例：
 
 ```vue
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 
 const uniLayout = ref()
