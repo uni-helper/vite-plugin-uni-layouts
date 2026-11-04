@@ -1,14 +1,23 @@
 import type { Node } from '@babel/types'
-import { isMp } from '@uni-helper/uni-env'
 import type { AttributeNode, DirectiveNode, ElementNode, SimpleExpressionNode } from '@vue/compiler-core'
+import type { ResolvedConfig, ViteDevServer } from 'vite'
+import type { Layout, Page, ResolvedOptions } from './types'
+import { isMp } from '@uni-helper/uni-env'
 import { babelParse, walkAST } from 'ast-kit'
 import MagicString from 'magic-string'
 import { kebabCase } from 'scule'
-import type { FSWatcher, ResolvedConfig, ViteDevServer } from 'vite'
 import { normalizePath } from 'vite'
 import { scanLayouts } from './scan'
-import type { Layout, Page, ResolvedOptions } from './types'
 import { getTarget, loadPagesJson, parseSFC } from './utils'
+
+/**
+ * Minimal shape both Vite's watcher and chokidar 5's FSWatcher satisfy.
+ * Their class types are incompatible since chokidar 5, but the plugin only
+ * listens to 'change' events.
+ */
+interface ChangeWatcher {
+  on: (event: 'change', listener: (path: string) => void) => unknown
+}
 
 export class Context {
   config!: ResolvedConfig
@@ -24,7 +33,7 @@ export class Context {
     this.pageJsonPath = 'src/pages.json'
   }
 
-  setupViteServer(server: ViteDevServer) {
+  setupViteServer(server: ViteDevServer): void {
     if (this._server === server)
       return
 
@@ -32,7 +41,7 @@ export class Context {
     this.setupWatcher(server.watcher)
   }
 
-  async setupWatcher(watcher: FSWatcher) {
+  async setupWatcher(watcher: ChangeWatcher): Promise<void> {
     watcher.on('change', async (path) => {
       if (path.includes('pages.json'))
         this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
@@ -41,7 +50,10 @@ export class Context {
     })
   }
 
-  async transform(code: string, path: string) {
+  async transform(code: string, path: string): Promise<{
+    code: string
+    map: string
+  } | undefined> {
     // no layouts
     if (!this.layouts.length)
       return
@@ -91,8 +103,8 @@ export class Context {
               = node.id.type === 'Identifier' && node.id.name === 'uniLayout'
             const isRef
               = node.init?.type === 'CallExpression'
-              && node.init.callee.type === 'Identifier'
-              && node.init.callee.name === 'ref'
+                && node.init.callee.type === 'Identifier'
+                && node.init.callee.name === 'ref'
             if (hasUniLayoutVar && isRef)
               pageLayoutProps.push('ref="uniLayout"')
           }
@@ -102,7 +114,7 @@ export class Context {
 
     if (disabled) {
       // find dynamic layout
-      const uniLayoutNode = sfc.template?.ast.children.find(v => v.type === 1 && kebabCase(v.tag) === 'uni-layout') as ElementNode
+      const uniLayoutNode = sfc.template?.ast?.children.find(v => v.type === 1 && kebabCase(v.tag) === 'uni-layout') as ElementNode
       // not found
       if (!uniLayoutNode)
         return
@@ -122,12 +134,14 @@ export class Context {
       })
       return {
         code: ms.toString(),
-        map,
+        // magic-string's SourceMap class does not satisfy vite's map type, so
+        // pass it as the JSON string vite accepts
+        map: map.toString(),
       }
     }
   }
 
-  async virtualModule() {
+  async virtualModule(): Promise<string> {
     const imports: string[] = []
     const components: string[] = []
     const _exports = this.layouts.map((v) => {
@@ -150,7 +164,7 @@ export default {
 }`
   }
 
-  generateDynamicLayout(node: ElementNode) {
+  generateDynamicLayout(node: ElementNode): string {
     const staticLayoutNameBind = node.props.find(
       v => v.type === 6 && v.name === 'name' && v.value?.content,
     ) as AttributeNode
@@ -180,7 +194,12 @@ export default {
         return v
       })
       const defaultSlotSource = defaultSlot.map(v => v.loc.source).join('\n')
-      const layouts = this.layouts.map((layout, index) => `<layout-${layout.kebabName}-uni v-${index === 0 ? 'if' : 'else-if'}="${bind} ==='${layout.kebabName}'" ${props.join(' ')}>${slotsSource}</layout-${layout.kebabName}-uni>`)
+      const layouts = this.layouts.map((layout, index) => {
+        const directive = index === 0
+          ? 'if'
+          : 'else-if'
+        return `<layout-${layout.kebabName}-uni v-${directive}="${bind} ==='${layout.kebabName}'" ${props.join(' ')}>${slotsSource}</layout-${layout.kebabName}-uni>`
+      })
       layouts.push(`<template v-else>${defaultSlotSource}</template>`)
 
       return layouts.join('\n')
@@ -195,7 +214,10 @@ export default {
     }
   }
 
-  async importLayoutComponents(code: string, id: string) {
+  async importLayoutComponents(code: string, id: string): Promise<{
+    code: string
+    map: string
+  }> {
     const ms = new MagicString(code)
     const imports: string[] = []
     const components: string[] = []
@@ -209,7 +231,7 @@ export default {
     }
     ms.append(imports.join('\n'))
     ms.replace(
-      /(createApp[\s\S]*?)(return\s{\s*app)/,
+      /(createApp[\s\S]*?)(return\s\{\s*app)/,
       `$1${components.join('')}$2`,
     )
     const map = ms.generateMap({
@@ -220,7 +242,7 @@ export default {
     code = ms.toString()
     return {
       code,
-      map,
+      map: map.toString(),
     }
   }
 }
