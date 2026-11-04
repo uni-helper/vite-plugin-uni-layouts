@@ -5,7 +5,7 @@
 ## 前置条件
 
 - [Node.js](https://nodejs.org/) 26（见仓库根目录 `.node-version`）
-- [pnpm](https://pnpm.io/) 12.15.0（见根 `package.json` 的 `packageManager` 和 `devEngines` 字段，建议配合 Corepack 启用）
+- [pnpm](https://pnpm.io/) 12.16.1（见根 `package.json` 的 `packageManager` 和 `devEngines` 字段，建议配合 Corepack 启用）
 
 `package.json` 的 `engines` 允许 `^22.22.2 || ^24.15.0 || >=26.0.0`，CI 会在这几个大版本上各跑一遍。
 

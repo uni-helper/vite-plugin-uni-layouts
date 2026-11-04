@@ -6,9 +6,9 @@
 
 - TypeScript，`strict: true`（tsconfig.json 只排除 `playground/**`）；`"type": "module"`，产物只有 ESM：`dist/index.mjs` 和 `dist/index.d.mts`，入口只有 `src/index.ts`。`exports` 里没有 `require` 条件，`main` 也指向 `.mjs`。
 - 构建用 tsdown（`tsdown.config.ts`：`format: 'esm'`、`dts: true`、`clean: true`）。`vite` 是 devDependency 且列在 `deps.neverBundle`，其余依赖保持外部 import，不打进产物。发布内容是 `dist` 加根级 `client.d.ts`（经 `exports["./client"]` 提供）。
-- Node：`.node-version` 是 26，`devEngines.runtime` 26（`onFail: warn`），`engines` 允许 `^22.22.2 || ^24.15.0 || >=26.0.0`。包管理器 pnpm 12.15.0（`packageManager` + `devEngines`）。workspace 只含 `playground`。
+- Node：`.node-version` 是 26，`devEngines.runtime` 26（`onFail: warn`），`engines` 允许 `^22.22.2 || ^24.15.0 || >=26.0.0`。包管理器 pnpm 12.16.1（`packageManager` + `devEngines`）。workspace 只含 `playground`。
 - 版本统一写在 `pnpm-workspace.yaml` 的 `catalog`，`package.json` 一律用 `catalog:` 引用。`pnpm install` 前会按 `trustPolicy: no-downgrade` 校验锁文件，`trustPolicyExclude` 里放了三个被 `.dcloudio` 锁住的老版本（`vite@5.4.21`、`semver@6.3.1`、`@vitejs/plugin-legacy@5.3.2`），去掉它们会让安装直接失败。
-- 依赖：tinyglobby（扫布局）、scule（大小写推导）、`@vue/compiler-core` + `@vue/compiler-sfc`（catalog 钉 `~3.4.38`，解析模板用）、@babel/types、ast-kit、magic-string 1.x、jsonc-parser、chokidar 5、@uni-helper/uni-env。
+- 依赖：tinyglobby（扫布局）、scule（大小写推导）、`@vue/compiler-core` + `@vue/compiler-sfc`（catalog 钉 `~3.4.38`，解析模板用）、@babel/types、ast-kit、magic-string 1.x、jsonc-parser、chokidar 3.6.0（catalog 精确钉住，3.x 的 `FSWatcher` 类型和 Vite 5 的 watcher 对得上）、@uni-helper/uni-env。
 - 开发依赖：vite 5、vitest 3、typescript 6、tsdown、@antfu/eslint-config 10、vue（playground 与类型用）。
 - 测试：vitest，无配置文件，测试在根 `test/`，直接 import `src/`，快照断言；fixtures 在 `test/fixtures`（PascalCase / camelCase / kebab-case / 嵌套 / no-index 布局 + pages.json）。`test/fixtures` 在 eslint 里整体忽略。
 - CI：`.github/workflows/ci.yml`，Linux / macOS / Windows × Node 22 / 24 / 26，依次跑 build、lint、test、typecheck。发布走 `pnpm release`（bumpp）→ `v*` tag → `release.yml`（changelogithub + `pnpm publish`）。

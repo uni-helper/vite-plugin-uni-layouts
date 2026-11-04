@@ -1,5 +1,6 @@
 import type { Node } from '@babel/types'
 import type { AttributeNode, DirectiveNode, ElementNode, SimpleExpressionNode } from '@vue/compiler-core'
+import type { FSWatcher } from 'chokidar'
 import type { ResolvedConfig, ViteDevServer } from 'vite'
 import type { Layout, Page, ResolvedOptions } from './types'
 import { isMp } from '@uni-helper/uni-env'
@@ -9,15 +10,6 @@ import { kebabCase } from 'scule'
 import { normalizePath } from 'vite'
 import { scanLayouts } from './scan'
 import { getTarget, loadPagesJson, parseSFC } from './utils'
-
-/**
- * Minimal shape both Vite's watcher and chokidar 5's FSWatcher satisfy.
- * Their class types are incompatible since chokidar 5, but the plugin only
- * listens to 'change' events.
- */
-interface ChangeWatcher {
-  on: (event: 'change', listener: (path: string) => void) => unknown
-}
 
 export class Context {
   config!: ResolvedConfig
@@ -41,7 +33,7 @@ export class Context {
     this.setupWatcher(server.watcher)
   }
 
-  async setupWatcher(watcher: ChangeWatcher): Promise<void> {
+  async setupWatcher(watcher: FSWatcher): Promise<void> {
     watcher.on('change', async (path) => {
       if (path.includes('pages.json'))
         this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
