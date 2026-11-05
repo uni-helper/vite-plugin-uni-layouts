@@ -1,5 +1,22 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`hoist page-meta out of the layout 1`] = `
+"<template>
+<page-meta :page-style="pageStyle"></page-meta>
+<layout-default-uni >
+  
+  <view>hello</view>
+</layout-default-uni>
+</template>"
+`;
+
+exports[`keep page-meta in place when layout is disabled 1`] = `
+"<template>
+  <page-meta :page-style="pageStyle"></page-meta>
+  <component is="layout-camelLayout-uni"><main></main></component>
+</template>"
+`;
+
 exports[`use default layout 1`] = `
 "<template>
 <layout-default-uni ><div>hello</div></layout-default-uni>

@@ -36,3 +36,25 @@ it('use inline layout', async () => {
   )
   expect(code?.code).toMatchSnapshot()
 })
+it('hoist page-meta out of the layout', async () => {
+  const code = await ctx.transform(
+    `<template>
+  <page-meta :page-style="pageStyle"></page-meta>
+  <view>hello</view>
+</template>`,
+    `${ctx.options.cwd}/src/pages/index/index.vue`,
+  )
+  expect(code?.code).toMatchSnapshot()
+})
+it('keep page-meta in place when layout is disabled', async () => {
+  const code = await ctx.transform(
+    `<template>
+  <page-meta :page-style="pageStyle"></page-meta>
+  <UniLayout name="camelLayout">
+    <main></main>
+  </UniLayout>
+</template>`,
+    `${ctx.options.cwd}/src/pages/index/disabled.vue`,
+  )
+  expect(code?.code).toMatchSnapshot()
+})
