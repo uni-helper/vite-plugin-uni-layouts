@@ -1,18 +1,20 @@
+import type { SFCDescriptor } from '@vue/compiler-sfc'
+import type { Page, ResolvedOptions, UserOptions } from './types'
 import { existsSync, readFileSync } from 'node:fs'
 import path, { join, relative, resolve, sep } from 'node:path'
 import process from 'node:process'
-import type { SFCDescriptor } from '@vue/compiler-sfc'
 import { parse as VueParser } from '@vue/compiler-sfc'
 import { parse as jsonParse } from 'jsonc-parser'
 import { normalizePath } from 'vite'
-import type { Page, ResolvedOptions, UserOptions } from './types'
 
-function slash(str: string) {
+function slash(str: string): string {
   return str.replace(/\\|\//g, sep)
 }
 
-export function getPageJsonPath(cwd = process.cwd()) {
-  return existsSync(normalizePath(join(cwd, 'src'))) ? 'src/pages.json' : 'pages.json'
+export function getPageJsonPath(cwd = process.cwd()): 'src/pages.json' | 'pages.json' {
+  return existsSync(normalizePath(join(cwd, 'src')))
+    ? 'src/pages.json'
+    : 'pages.json'
 }
 
 export function resolveOptions(userOptions: UserOptions = {}): ResolvedOptions {
@@ -24,7 +26,7 @@ export function resolveOptions(userOptions: UserOptions = {}): ResolvedOptions {
   }
 }
 
-export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()) {
+export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()): Page[] {
   const pagesJsonRaw = readFileSync(resolve(cwd, path), {
     encoding: 'utf-8',
   })
@@ -33,9 +35,10 @@ export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()) {
 
   return [
     ...pages,
+    // 分包页面的 path 相对分包目录，拼上 root 才是相对 src 的页面路径
     ...subPackages
-      .map(({ pages = {}, root = '' }: any) => {
-        return pages.map((page: any) => ({
+      .map(({ pages = [], root = '' }: { pages?: Page[], root?: string }) => {
+        return pages.map(page => ({
           ...page,
           path: normalizePath(join(root, page.path)),
         }))
@@ -52,7 +55,7 @@ export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()) {
  * @param platform The platform to target.
  * @returns The parsed pages.json object.
  */
-export function parsePagesJson(content: string, platform: string) {
+export function parsePagesJson(content: string, platform: string): Record<string, any> {
   try {
     const preprocessed = preprocess(content, platform)
     return jsonParse(preprocessed)
@@ -84,7 +87,7 @@ function getPlatformContext(platform: string): Record<string, boolean> {
 }
 
 function evaluate(condition: string, context: Record<string, boolean>): boolean {
-  const code = condition.replace(/[a-zA-Z0-9_$-]+/g, (match) => {
+  const code = condition.replace(/[\w$-]+/g, (match) => {
     if (match === 'true' || match === 'false')
       return match
     return context[match] ? 'true' : 'false'
@@ -98,13 +101,13 @@ function evaluate(condition: string, context: Record<string, boolean>): boolean 
   }
 }
 
-function preprocess(content: string, platform: string) {
+function preprocess(content: string, platform: string): string {
   const context = getPlatformContext(platform)
   const lines = content.split('\n')
   const result: string[] = []
   const stack: boolean[] = []
 
-  const shouldInclude = () => stack.every(v => v)
+  const shouldInclude = (): boolean => stack.every(v => v)
 
   for (const line of lines) {
     const trimmed = line.trim()
@@ -140,7 +143,7 @@ export function getTarget(
   pages: Page[] = [],
   layout = 'default',
   cwd = process.cwd(),
-) {
+): false | Required<Page> {
   if (!(resolvePath.endsWith('.vue') || resolvePath.endsWith('.nvue')))
     return false
 

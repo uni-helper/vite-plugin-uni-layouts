@@ -1,9 +1,9 @@
 import type { Plugin } from 'vite'
-import { createFilter } from 'vite'
+import type { UserOptions } from './types'
 import chokidar from 'chokidar'
+import { createFilter } from 'vite'
 import { virtualModuleId } from './constant'
 import { Context } from './context'
-import type { UserOptions } from './types'
 import { getPageJsonPath, resolveOptions } from './utils'
 
 export function VitePluginUniLayouts(userOptions: UserOptions = {}): Plugin {
