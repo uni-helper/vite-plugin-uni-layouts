@@ -1,5 +1,5 @@
 import { resolve } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { loadPagesJson, parsePagesJson } from '../src/utils'
 
 it('load pages', () => {
@@ -166,5 +166,30 @@ describe('parsePagesJson', () => {
         },
       ],
     })
+  })
+  it('unbalanced ifdef', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const jsonString = `{
+      "pages": [
+        {
+          "path": "pages/index/index"
+        },
+        // #ifdef APP-PLUS
+        {
+          "path": "pages/app/index"
+        }
+      ]
+    }`
+    expect(parsePagesJson(jsonString, 'H5')).toEqual({
+      pages: [
+        {
+          path: 'pages/index/index',
+        },
+      ],
+    })
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('unbalanced #ifdef'),
+    )
+    warn.mockRestore()
   })
 })

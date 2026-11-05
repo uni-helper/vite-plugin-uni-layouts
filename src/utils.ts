@@ -144,6 +144,12 @@ function preprocess(content: string, platform: string): string {
     else
       result.push('')
   }
+
+  if (stack.length) {
+    console.warn(
+      '[vite-plugin-uni-layouts] unbalanced #ifdef/#ifndef in pages.json, the pages after it are ignored',
+    )
+  }
   return result.join('\n')
 }
 
