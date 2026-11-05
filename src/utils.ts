@@ -123,6 +123,13 @@ function preprocess(content: string, platform: string): string {
         result.push('')
         continue
       }
+      if (comment.startsWith('#else')) {
+        // a block holds at most one #else (uni has no #elif), so flipping the
+        // innermost entry turns the group into a 2-way switch
+        stack[stack.length - 1] = !stack[stack.length - 1]
+        result.push('')
+        continue
+      }
       if (comment.startsWith('#endif')) {
         stack.pop()
         result.push('')

@@ -111,4 +111,42 @@ describe('parsePagesJson', () => {
       ],
     })
   })
+  it('ifdef with else', () => {
+    const jsonString = `{
+      "pages": [
+        // #ifdef MP-WEIXIN
+        {
+          "path": "pages/mp/index"
+        },
+        // #else
+        {
+          "path": "pages/web/index"
+        },
+        // #endif
+        {
+          "path": "pages/shared/index"
+        }
+      ]
+    }`
+    expect(parsePagesJson(jsonString, 'MP-WEIXIN')).toEqual({
+      pages: [
+        {
+          path: 'pages/mp/index',
+        },
+        {
+          path: 'pages/shared/index',
+        },
+      ],
+    })
+    expect(parsePagesJson(jsonString, 'H5')).toEqual({
+      pages: [
+        {
+          path: 'pages/web/index',
+        },
+        {
+          path: 'pages/shared/index',
+        },
+      ],
+    })
+  })
 })
