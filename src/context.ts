@@ -3,25 +3,35 @@ import type { AttributeNode, DirectiveNode, ElementNode, SimpleExpressionNode } 
 import type { FSWatcher } from 'chokidar'
 import type { ResolvedConfig, ViteDevServer } from 'vite'
 import type { Layout, Page, ResolvedOptions } from './types'
+import { resolve } from 'node:path'
 import { isMp } from '@uni-helper/uni-env'
 import { babelParse, walkAST } from 'ast-kit'
 import MagicString from 'magic-string'
 import { kebabCase } from 'scule'
 import { normalizePath } from 'vite'
+import { virtualModuleId } from './constant'
 import { scanLayouts } from './scan'
-import { getTarget, loadPagesJson, parseSFC } from './utils'
+import { getPagesWithChangedLayout, getSourceUrl, getTarget, invalidateAndReload, isLayoutFile, loadPagesJson, parseSFC } from './utils'
 
 export class Context {
   config!: ResolvedConfig
   options: ResolvedOptions
   pages: Page[]
+  /**
+   * layouts 列表
+   */
   layouts: Layout[]
   pageJsonPath: string
+  /**
+   * layouts 目录路径
+   */
+  layoutDirPath: string
   private _server?: ViteDevServer
   constructor(options: ResolvedOptions) {
     this.options = options
     this.pages = []
-    this.layouts = scanLayouts(options.layoutDir, options.cwd)
+    this.layoutDirPath = resolve(options.cwd, options.layoutDir)
+    this.layouts = scanLayouts(this.layoutDirPath)
     this.pageJsonPath = 'src/pages.json'
   }
 
@@ -35,11 +45,84 @@ export class Context {
 
   async setupWatcher(watcher: FSWatcher): Promise<void> {
     watcher.on('change', async (path) => {
-      if (path.includes('pages.json'))
-        this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
+      // chokidar reports native paths, and Windows uses `\`
+      if (!normalizePath(path).endsWith(this.pageJsonPath))
+        return
 
-      // TODO: auto reload
+      const prePages = this.pages
+      this.reloadPages()
+
+      const server = this._server
+      if (!server)
+        return
+
+      // the wrapper a page gets comes from its `layout`, so only pages whose
+      // layout changed need to be transformed again
+      for (const page of getPagesWithChangedLayout(this.pages, prePages))
+        await this.reloadPage(page, server)
     })
+
+    watcher.on('add', async (path) => {
+      if (!isLayoutFile(path, this.layoutDirPath))
+        return
+      await this.reloadLayouts()
+    })
+
+    watcher.on('unlink', async (path) => {
+      if (!isLayoutFile(path, this.layoutDirPath))
+        return
+      await this.reloadLayouts()
+    })
+  }
+
+  /**
+   * Read pages.json again. An in-flight save can leave the file empty for a
+   * moment, and a throw inside a watcher listener takes the whole dev server
+   * down, so a failed read keeps the last good page list.
+   */
+  reloadPages(): void {
+    try {
+      this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
+    }
+    catch (error) {
+      // the reason goes into the message: a dev-server console wrapper can drop
+      // extra arguments and print an object as `{}`
+      console.warn(`[vite-plugin-uni-layouts] failed to read ${this.pageJsonPath}, keeping the previous page list: ${String(error)}`)
+    }
+  }
+
+  /** Invalidate both possible sources of a page: `.vue` and `.nvue`. */
+  async reloadPage(page: Page, server: ViteDevServer): Promise<void> {
+    for (const ext of ['.vue', '.nvue'])
+      await invalidateAndReload(getSourceUrl(this.pageJsonPath, `${page.path}${ext}`), server)
+  }
+
+  /** Rescan the layouts directory and reload every module that imports a layout. */
+  async reloadLayouts(): Promise<void> {
+    this.layouts = scanLayouts(this.layoutDirPath)
+
+    const server = this._server
+    if (!server)
+      return
+
+    // layouts reach the app through the virtual module or through the main file,
+    // and both lists are generated from this.layouts
+    const virtualModule = server.moduleGraph.getModuleById(virtualModuleId)
+    if (virtualModule) {
+      server.moduleGraph.invalidateModule(virtualModule)
+      await server.reloadModule(virtualModule)
+    }
+
+    for (const ext of ['.ts', '.js'])
+      await invalidateAndReload(getSourceUrl(this.pageJsonPath, `main${ext}`), server)
+
+    // an open page keeps the wrapper from the layout list it was transformed
+    // with, so it needs the page modules again; `transform` also bails out while
+    // no layout exists, which leaves the page list empty even with pages open
+    if (!this.pages.length)
+      this.reloadPages()
+    for (const page of this.pages)
+      await this.reloadPage(page, server)
   }
 
   async transform(code: string, path: string): Promise<{

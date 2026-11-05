@@ -1,7 +1,8 @@
 import type { SFCDescriptor } from '@vue/compiler-sfc'
+import type { ViteDevServer } from 'vite'
 import type { Page, ResolvedOptions, UserOptions } from './types'
 import { existsSync, readFileSync } from 'node:fs'
-import path, { join, relative, resolve, sep } from 'node:path'
+import path, { dirname, join, relative, resolve, sep } from 'node:path'
 import process from 'node:process'
 import { parse as VueParser } from '@vue/compiler-sfc'
 import { parse as jsonParse } from 'jsonc-parser'
@@ -194,4 +195,52 @@ export async function parseSFC(code: string): Promise<SFCDescriptor> {
       '[vite-plugin-uni-layouts] Vue3\'s "@vue/compiler-sfc" is required.',
     )
   }
+}
+
+/**
+ * Drop a module from the dev server graph and push the reload to the browser.
+ * A file that was never requested is not in the graph; nothing to do then.
+ */
+export async function invalidateAndReload(filePath: string, server: ViteDevServer): Promise<void> {
+  const module = await server.moduleGraph.getModuleByUrl(filePath)
+  if (!module)
+    return
+
+  server.moduleGraph.invalidateModule(module)
+  await server.reloadModule(module)
+}
+
+/** Whether a watcher path is a `.vue` file inside the layouts directory. */
+export function isLayoutFile(filePath: string, layoutDirPath: string): boolean {
+  const normalizedPath = normalizePath(filePath)
+  // `scanLayouts` only picks up `.vue`, so other extensions are not layouts
+  if (!normalizedPath.endsWith('.vue'))
+    return false
+
+  // the separator keeps a sibling like `src/layouts-old/x.vue` out
+  return normalizedPath.startsWith(`${normalizePath(layoutDirPath)}/`)
+}
+
+/**
+ * Pages whose `layout` differs from the previous pages.json read.
+ * Pages are matched by `path`, so reordering pages.json is not a change.
+ */
+export function getPagesWithChangedLayout(pages: Page[], prePages: Page[]): Page[] {
+  const preByPath = new Map(prePages.map(page => [
+    normalizePath(page.path),
+    page,
+  ]))
+  return pages.filter((page) => {
+    const pre = preByPath.get(normalizePath(page.path))
+    return !!pre && pre.layout !== page.layout
+  })
+}
+
+/**
+ * Dev server URL of a source file that sits next to pages.json, e.g.
+ * `/src/pages/index/index.vue` or `/pages/index/index.vue` in a project without
+ * a `src` directory. Page paths in pages.json are relative to pages.json itself.
+ */
+export function getSourceUrl(pageJsonPath: string, relativePath: string): string {
+  return normalizePath(join('/', dirname(pageJsonPath), relativePath))
 }

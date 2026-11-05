@@ -37,13 +37,13 @@ playground 自己的类型检查在 `playground` 目录下跑 `pnpm typecheck`�
 | 模块 | 职责 |
 | --- | --- |
 | `src/index.ts` | 插件入口：`enforce: 'pre'`；`configResolved` 里 `build.watch` 时用 chokidar 监听 `src/pages.json` 和 `pages.json`；`configureServer` 接 Vite 的 watcher；`resolveId` / `load` 提供虚拟模块；`transform` 先匹配 `src/main.(ts\|js)` / `main.(ts\|js)` 注入布局注册，其余交给 `ctx.transform` |
-| `src/context.ts` | Context 类：页面 transform、`<uni-layout>` 动态布局改写、`importLayoutComponents`（main 注入）、`virtualModule` 代码生成 |
+| `src/context.ts` | Context 类：页面 transform、`<uni-layout>` 动态布局改写、`importLayoutComponents`（main 注入）、`virtualModule` 代码生成、watcher 驱动的页面 / 布局重载 |
 | `src/scan.ts` | `scanLayouts`：tinyglobby 扫 `layoutDir` 下 `**/*.vue`（忽略 `**/__*__/*`），结果排序，推导 name / pascalName / kebabName |
-| `src/utils.ts` | `resolveOptions` / `getPageJsonPath` / `loadPagesJson`（先按 `UNI_PLATFORM` 处理页面的条件编译，再用 jsonc 解析，合并 subPackages）/ `getTarget` / `parseSFC`（兼容 compiler-sfc 2.7 的返回形状） |
+| `src/utils.ts` | `resolveOptions` / `getPageJsonPath` / `loadPagesJson`（先按 `UNI_PLATFORM` 处理页面的条件编译，再用 jsonc 解析，合并 subPackages）/ `getTarget` / `parseSFC`（兼容 compiler-sfc 2.7 的返回形状）；HMR 用的 `invalidateAndReload` / `isLayoutFile` / `getPagesWithChangedLayout` / `getSourceUrl` |
 | `src/types.ts` | `Options`（layout / layoutDir / cwd）、`Layout`、`Page` |
 | `src/constant.ts` | `virtualModuleId = 'virtual:uni-layouts'` |
 | `client.d.ts` | `virtual:uni-layouts` 声明：`layouts` 组件记录 + 默认导出 Vue Plugin |
-| `test/` | vitest 快照测试 + fixtures |
+| `test/` | vitest：快照测试 + fixtures；HMR 相关用普通断言，`setup-watcher.test.ts` 用假 server 记录插件要失效哪些模块 |
 
 关键行为：
 
@@ -53,7 +53,7 @@ playground 自己的类型检查在 `playground` 目录下跑 `pnpm typecheck`�
 - **layout 字段语义**（context.ts）：缺省或 `true` → 用选项 `layout`（默认 `default`）；`false` → 禁用静态布局，走 `<uni-layout>` 动态分支；字符串找不到对应布局或为空串 → 原样返回，不报错也不警告。
 - **模板改写**：非禁用页面把整个 `<template>` 内容包进 `<layout-{kebabName}-uni>`；页面模板顶层的 `<page-meta>` 会被提到布局组件前面（`<page-meta>` 只有作为页面第一个节点才生效），`layout: false` 的页面不动。script setup 里声明 `const uniLayout = ref()` 时自动加 `ref="uniLayout"`。`<uni-layout>` 动态分支按平台分叉：小程序端展开成每个布局的 `v-if` / `v-else-if` 链（条件是 name 绑定表达式 `=== '{kebabName}'`），H5 端生成 `<component is="layout-{name}-uni">`。
 - **main 注入很脆**（context.ts `importLayoutComponents`）：用正则 `/(createApp[\s\S]*?)(return\s\{\s*app)/` 往 createApp 调用里插 `app.component(...)`，依赖 main 文件的书写形状；全局注册还有 `virtual:uni-layouts` 一条路（默认导出的 install 插件逐个 `app.component`）。
-- **HMR 不完整**：watcher 只在 pages.json change 时重载 pages，布局文件的增删改没有 watch（context.ts 有 `// TODO: auto reload`），改布局后通常要重启 dev server 才生效。
+- **HMR**：watcher 收到 pages.json 的 `change` 后重载页面列表，再按 `path` 对齐只失效 `layout` 变了的页面模块（`.vue` / `.nvue` 都试）；布局目录下 `.vue` / `.nvue` 的 `add` / `unlink` 会重扫布局，失效虚拟模块、`main.ts` 和所有页面模块，新增的布局不用重启就能生效。build watch 下没有 dev server，pages.json 变化只更新页面列表。
 - **`uni-layout` 标签别留在静态布局的页面里**：页面没有写 `layout: false` 却带着 `<uni-layout>` 时，模板被包进布局组件后 uni-app 的编译器会抛 `Cannot read properties of undefined (reading 'type')`。playground 里 `src/pages/index/uni-layout.vue` 用 `definePage({ layout: false })` 正是为了走动态分支。
 - **ESM only 的连带影响**：包没有 CJS 入口，用 CJS 配置的项目加载时会报 `This package is ESM only`；同时 `@dcloudio/vite-plugin-uni` 是 CJS 包，ESM 配置下 `import uni from ...` 得到的是整个 `module.exports`，必须先取 `.default`。playground 和 README 都用 `@uni-helper/plugin-uni` 处理这一层（它内部就是 `uni.default ?? uni`）。
 - **playground 的 pages.json 靠 uni-pages 生成**：`@uni-helper/vite-plugin-uni-pages` `^0.6.1`，`subPackages: ['src/pages-sub']`（相对 Vite root）、`dts: 'src/uni-pages.d.ts'`、`insertFinalNewline: true`。页面配置写在 `definePage` 宏里，`<route>` 自定义块从 uni-pages 0.4 起不再解析。`playground/src/pages.json` 和 `playground/src/uni-pages.d.ts` 是生成物但提交进仓库。

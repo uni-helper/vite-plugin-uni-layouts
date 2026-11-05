@@ -313,6 +313,15 @@ const locked = ref(false)
 
 只处理页面模板顶层的 `<page-meta>`，写在其他节点里面的不受影响，也不会生效。`layout: false` 的页面模板不动，页面本身就是根节点，`<page-meta>` 写在第一个位置就行。
 
+### 开发时热更新
+
+dev server 下改这些不用重启：
+
+- 改 pages.json 里某个页面的 `layout`，只有这一页重新编译，其他页面不动。
+- 在布局目录里新增或删除 `.vue`，插件会重扫布局，页面也用上新布局；删掉的布局从页面模板里去掉。
+
+`vite build --watch` 没有 dev server，pages.json 的变化只更新插件记下的页面列表，下一次构建生效。
+
 ### 选项
 
 `UniLayouts(options)` 只有三个字段：`layout` 是默认布局名（默认 `default`），`layoutDir` 是布局目录（默认 `src/layouts`），`cwd` 是路径基准（默认 `process.cwd()`）。
