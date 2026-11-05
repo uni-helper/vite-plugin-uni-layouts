@@ -19,6 +19,10 @@
       "path": "pages/index/uni-layout",
       "type": "page",
       "layout": false
+    },
+    {
+      "path": "pages/index/page-meta",
+      "type": "page"
     }
   ],
   "subPackages": [

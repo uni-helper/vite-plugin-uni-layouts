@@ -8,6 +8,7 @@
 type _LocationUrl =
   "/pages/index/index" |
   "/pages/index/disabled" |
+  "/pages/index/page-meta" |
   "/pages/index/uni-layout" |
   "/pages-sub/test/test";
 
