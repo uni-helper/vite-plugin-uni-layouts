@@ -39,7 +39,7 @@ playground 自己的类型检查在 `playground` 目录下跑 `pnpm typecheck`�
 | `src/index.ts` | 插件入口：`enforce: 'pre'`；`configResolved` 里 `build.watch` 时用 chokidar 监听 `src/pages.json` 和 `pages.json`；`configureServer` 接 Vite 的 watcher；`resolveId` / `load` 提供虚拟模块；`transform` 先匹配 `src/main.(ts\|js)` / `main.(ts\|js)` 注入布局注册，其余交给 `ctx.transform` |
 | `src/context.ts` | Context 类：页面 transform、`<uni-layout>` 动态布局改写、`importLayoutComponents`（main 注入）、`virtualModule` 代码生成 |
 | `src/scan.ts` | `scanLayouts`：tinyglobby 扫 `layoutDir` 下 `**/*.vue`（忽略 `**/__*__/*`），结果排序，推导 name / pascalName / kebabName |
-| `src/utils.ts` | `resolveOptions` / `getPageJsonPath` / `loadPagesJson`（jsonc 解析，合并 subPackages）/ `getTarget` / `parseSFC`（兼容 compiler-sfc 2.7 的返回形状） |
+| `src/utils.ts` | `resolveOptions` / `getPageJsonPath` / `loadPagesJson`（先按 `UNI_PLATFORM` 处理页面的条件编译，再用 jsonc 解析，合并 subPackages）/ `getTarget` / `parseSFC`（兼容 compiler-sfc 2.7 的返回形状） |
 | `src/types.ts` | `Options`（layout / layoutDir / cwd）、`Layout`、`Page` |
 | `src/constant.ts` | `virtualModuleId = 'virtual:uni-layouts'` |
 | `client.d.ts` | `virtual:uni-layouts` 声明：`layouts` 组件记录 + 默认导出 Vue Plugin |
@@ -49,6 +49,7 @@ playground 自己的类型检查在 `playground` 目录下跑 `pnpm typecheck`�
 
 - **布局名推导**（scan.ts）：文件名为 `index` 时取父目录名；目录段逐段与文件名段比对（scule `splitByCase`，大小写不敏感），相同的段及之后丢弃，剩余目录段 + 文件名段拼出 pascalName，`name` 是 camelCase，注册的组件名是 `layout-{kebabName}-uni`。页面配置里写的是 `name`（camelCase）。
 - **页面匹配**（utils.ts `getTarget`）：只处理 `.vue` / `.nvue`；路径在 `src/` 下则相对 `src` 解析，去扩展名后与 pages.json 的 `path`（含 subPackages 的 `root` 前缀）比对。uni-pages 0.6 生成的分包条目正好是 `root` + 页面相对分包的 `path`，拼起来等于源码相对 `src` 的位置。
+- **pages.json 条件编译**（utils.ts `parsePagesJson`）：行级处理 `#ifdef` / `#ifndef` / `#else` / `#endif`，可以嵌套，`||` 连接多平台；平台取 `process.env.UNI_PLATFORM`，`mp-weixin` 和 `mp_weixin` 两种写法都认。`#ifdef` 没闭合时 warn 一次，后面的页面会被当成别的平台的配置丢掉。
 - **layout 字段语义**（context.ts）：缺省或 `true` → 用选项 `layout`（默认 `default`）；`false` → 禁用静态布局，走 `<uni-layout>` 动态分支；字符串找不到对应布局或为空串 → 原样返回，不报错也不警告。
 - **模板改写**：非禁用页面把整个 `<template>` 内容包进 `<layout-{kebabName}-uni>`；页面模板顶层的 `<page-meta>` 会被提到布局组件前面（`<page-meta>` 只有作为页面第一个节点才生效），`layout: false` 的页面不动。script setup 里声明 `const uniLayout = ref()` 时自动加 `ref="uniLayout"`。`<uni-layout>` 动态分支按平台分叉：小程序端展开成每个布局的 `v-if` / `v-else-if` 链（条件是 name 绑定表达式 `=== '{kebabName}'`），H5 端生成 `<component is="layout-{name}-uni">`。
 - **main 注入很脆**（context.ts `importLayoutComponents`）：用正则 `/(createApp[\s\S]*?)(return\s\{\s*app)/` 往 createApp 调用里插 `app.component(...)`，依赖 main 文件的书写形状；全局注册还有 `virtual:uni-layouts` 一条路（默认导出的 install 插件逐个 `app.component`）。
