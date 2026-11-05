@@ -31,7 +31,7 @@ export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()): Pag
     encoding: 'utf-8',
   })
 
-  const { pages = [], subPackages = [] } = jsonParse(pagesJsonRaw)
+  const { pages = [], subPackages = [] } = parsePagesJson(pagesJsonRaw, process.env.UNI_PLATFORM || '')
 
   return [
     ...pages,
@@ -45,6 +45,106 @@ export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()): Pag
       })
       .flat(),
   ]
+}
+
+/**
+ * parsePagesJson
+ * The `parsePagesJson` exported by `@dcloudio/uni-cli-shared` does not support parsing `subPackage` in the miniProgram environment.
+ * Therefore, a custom parsePagesJson implementation is provided here.
+ * @param content The content of the pages.json file.
+ * @param platform The platform to target.
+ * @returns The parsed pages.json object.
+ */
+export function parsePagesJson(content: string, platform: string): Record<string, any> {
+  return jsonParse(preprocess(content, platform))
+}
+
+function getPlatformContext(platform: string): Record<string, boolean> {
+  const ctx: Record<string, boolean> = {
+    VUE3: true,
+  }
+  const p = platform.toUpperCase()
+  if (p) {
+    ctx[p] = true
+    // uni accepts "mp-weixin" and "mp_weixin" as the same platform
+    ctx[p.replace(/-/g, '_')] = true
+    if (p.startsWith('APP-'))
+      ctx.APP = true
+
+    if (p.startsWith('MP-'))
+      ctx.MP = true
+
+    if (p === 'H5' || p === 'WEB') {
+      ctx.H5 = true
+      ctx.WEB = true
+    }
+  }
+  return ctx
+}
+
+function evaluate(condition: string, context: Record<string, boolean>): boolean {
+  const code = condition.replace(/[\w$-]+/g, (match) => {
+    if (match === 'true' || match === 'false')
+      return match
+    return context[match] ? 'true' : 'false'
+  })
+  try {
+    // eslint-disable-next-line no-new-func
+    return new Function(`return !!(${code})`)()
+  }
+  catch {
+    return false
+  }
+}
+
+function preprocess(content: string, platform: string): string {
+  const context = getPlatformContext(platform)
+  const lines = content.split('\n')
+  const result: string[] = []
+  const stack: boolean[] = []
+
+  const shouldInclude = (): boolean => stack.every(v => v)
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith('//')) {
+      const comment = trimmed.substring(2).trim()
+      if (comment.startsWith('#ifdef')) {
+        stack.push(evaluate(comment.substring(6).trim(), context))
+        result.push('')
+        continue
+      }
+      if (comment.startsWith('#ifndef')) {
+        stack.push(!evaluate(comment.substring(7).trim(), context))
+        result.push('')
+        continue
+      }
+      if (comment.startsWith('#else')) {
+        // a block holds at most one #else (uni has no #elif), so flipping the
+        // innermost entry turns the group into a 2-way switch
+        stack[stack.length - 1] = !stack[stack.length - 1]
+        result.push('')
+        continue
+      }
+      if (comment.startsWith('#endif')) {
+        stack.pop()
+        result.push('')
+        continue
+      }
+    }
+
+    if (shouldInclude())
+      result.push(line)
+    else
+      result.push('')
+  }
+
+  if (stack.length) {
+    console.warn(
+      '[vite-plugin-uni-layouts] unbalanced #ifdef/#ifndef in pages.json, the pages after it are ignored',
+    )
+  }
+  return result.join('\n')
 }
 
 export function getTarget(
