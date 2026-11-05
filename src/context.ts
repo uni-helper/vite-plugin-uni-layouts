@@ -3,7 +3,6 @@ import type { AttributeNode, DirectiveNode, ElementNode, SimpleExpressionNode } 
 import type { FSWatcher } from 'chokidar'
 import type { ResolvedConfig, ViteDevServer } from 'vite'
 import type { Layout, Page, ResolvedOptions } from './types'
-import fs from 'node:fs'
 import { resolve } from 'node:path'
 import { isMp } from '@uni-helper/uni-env'
 import { babelParse, walkAST } from 'ast-kit'
@@ -12,7 +11,7 @@ import { kebabCase } from 'scule'
 import { normalizePath } from 'vite'
 import { virtualModuleId } from './constant'
 import { scanLayouts } from './scan'
-import { getTarget, invalidateAndReload, isLayoutFile, loadPagesJson, parseSFC } from './utils'
+import { getPagesWithChangedLayout, getSourceUrl, getTarget, invalidateAndReload, isLayoutFile, loadPagesJson, parseSFC } from './utils'
 
 export class Context {
   config!: ResolvedConfig
@@ -46,85 +45,65 @@ export class Context {
 
   async setupWatcher(watcher: FSWatcher): Promise<void> {
     watcher.on('change', async (path) => {
-      if (!path.includes(this.pageJsonPath))
+      // chokidar reports native paths, and Windows uses `\`
+      if (!normalizePath(path).endsWith(this.pageJsonPath))
         return
 
       const prePages = this.pages
       this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
 
-      // 找出 layout 发生变化的页面（按 path 对齐）
-      const preByPath = new Map(prePages.map(p => [
-        normalizePath(p.path),
-        p,
-      ]))
-      const changedPages = this.pages.filter((newPage) => {
-        const pre = preByPath.get(normalizePath(newPage.path))
-        return pre && pre.layout !== newPage.layout
-      })
-
-      const viteRoot = this._server!.config.root
-
-      if (!this._server || !changedPages.length)
+      const server = this._server
+      if (!server)
         return
 
-      // 失效对应的模块，触发 transform
-      for (const page of changedPages) {
-        // 使 .vue 文件失效, 如果存在的话
-        const pagePathVue = normalizePath(
-          resolve('/src', `${page.path}.vue`),
-        )
-        fs.access(resolve(viteRoot, 'src', `${page.path}.vue`), fs.constants.F_OK, (err) => {
-          if (!err)
-            invalidateAndReload(pagePathVue, this._server)
-        })
-
-        // 使 .nvue 文件失效, 如果存在的话
-        const pagePathNv = normalizePath(
-          resolve('/src', `${page.path}.nvue`),
-        )
-        fs.access(resolve(viteRoot, 'src', `${page.path}.nvue`), fs.constants.F_OK, (err) => {
-          if (!err)
-            invalidateAndReload(pagePathNv, this._server)
-        })
-      }
+      // the wrapper a page gets comes from its `layout`, so only pages whose
+      // layout changed need to be transformed again
+      for (const page of getPagesWithChangedLayout(this.pages, prePages))
+        await this.reloadPage(page, server)
     })
 
     watcher.on('add', async (path) => {
       if (!isLayoutFile(path, this.layoutDirPath))
         return
-      this.reloadLayouts()
+      await this.reloadLayouts()
     })
 
     watcher.on('unlink', async (path) => {
       if (!isLayoutFile(path, this.layoutDirPath))
         return
-      this.reloadLayouts()
+      await this.reloadLayouts()
     })
   }
 
-  /** 重新扫描 layouts 目录，生成 layouts 列表，并触发 HMR 更新 */
-  reloadLayouts(): void {
+  /** Invalidate both possible sources of a page: `.vue` and `.nvue`. */
+  async reloadPage(page: Page, server: ViteDevServer): Promise<void> {
+    for (const ext of ['.vue', '.nvue'])
+      await invalidateAndReload(getSourceUrl(this.pageJsonPath, `${page.path}${ext}`), server)
+  }
+
+  /** Rescan the layouts directory and reload every module that imports a layout. */
+  async reloadLayouts(): Promise<void> {
     this.layouts = scanLayouts(this.layoutDirPath)
 
-    if (!this._server)
+    const server = this._server
+    if (!server)
       return
 
-    // 使虚拟模块失效并重新加载
-    const virtualModule = this._server.moduleGraph.getModuleById(virtualModuleId)
+    // layouts reach the app through the virtual module or through the main file,
+    // and both lists are generated from this.layouts
+    const virtualModule = server.moduleGraph.getModuleById(virtualModuleId)
     if (virtualModule) {
-      this._server.moduleGraph.invalidateModule(virtualModule)
-      this._server.reloadModule(virtualModule)
+      server.moduleGraph.invalidateModule(virtualModule)
+      await server.reloadModule(virtualModule)
     }
 
-    // 使 main.ts/main.js 失效，触发 transform 中的 importLayoutComponents 重新执行
-    const mainFiles = [
-      '/src/main.ts',
-      '/src/main.js',
-      '/main.ts',
-      '/main.js',
-    ]
-    for (const mainFile of mainFiles)
-      invalidateAndReload(mainFile, this._server)
+    for (const ext of ['.ts', '.js'])
+      await invalidateAndReload(getSourceUrl(this.pageJsonPath, `main${ext}`), server)
+
+    // an open page keeps the wrapper from the layout list it was transformed
+    // with, so a page that gains or loses a layout has to be transformed again
+    for (const page of this.pages)
+      await this.reloadPage(page, server)
   }
 
   async transform(code: string, path: string): Promise<{

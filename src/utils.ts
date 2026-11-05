@@ -2,7 +2,7 @@ import type { SFCDescriptor } from '@vue/compiler-sfc'
 import type { ViteDevServer } from 'vite'
 import type { Page, ResolvedOptions, UserOptions } from './types'
 import { existsSync, readFileSync } from 'node:fs'
-import path, { join, relative, resolve, sep } from 'node:path'
+import path, { dirname, join, relative, resolve, sep } from 'node:path'
 import process from 'node:process'
 import { parse as VueParser } from '@vue/compiler-sfc'
 import { parse as jsonParse } from 'jsonc-parser'
@@ -197,36 +197,49 @@ export async function parseSFC(code: string): Promise<SFCDescriptor> {
   }
 }
 
-// 使模块失效并重新加载
-export async function invalidateAndReload(filePath: string, server?: ViteDevServer): Promise<boolean> {
-  if (!server) {
-    console.error('Vite server not available.')
-    return false
-  }
-
+/**
+ * Drop a module from the dev server graph and push the reload to the browser.
+ * A file that was never requested is not in the graph; nothing to do then.
+ */
+export async function invalidateAndReload(filePath: string, server: ViteDevServer): Promise<void> {
   const module = await server.moduleGraph.getModuleByUrl(filePath)
+  if (!module)
+    return
 
-  if (module) {
-    // 1. 使模块失效
-    // 这会清除模块的 transform 缓存，并标记它需要重新加载
-    // 同时也会遍历所有导入它的模块并传递失效状态
-    server.moduleGraph.invalidateModule(module)
-
-    // 2. 通知 HMR
-    // 告诉浏览器该模块（及其所有依赖它的模块）需要重新加载
-    server.reloadModule(module)
-
-    return true
-  }
-  else {
-    console.warn(`[vite-plugin-uni-layouts] ❌ Module not found in module graph: ${filePath}`)
-    return false
-  }
+  server.moduleGraph.invalidateModule(module)
+  await server.reloadModule(module)
 }
 
-/** 检查路径是否在 layouts 目录下 */
+/** Whether a watcher path is a `.vue` / `.nvue` file inside the layouts directory. */
 export function isLayoutFile(filePath: string, layoutDirPath: string): boolean {
   const normalizedPath = normalizePath(filePath)
-  const normalizedLayoutDir = normalizePath(layoutDirPath)
-  return normalizedPath.startsWith(normalizedLayoutDir) && (normalizedPath.endsWith('.vue') || normalizedPath.endsWith('.nvue'))
+  if (!normalizedPath.endsWith('.vue') && !normalizedPath.endsWith('.nvue'))
+    return false
+
+  // the separator keeps a sibling like `src/layouts-old/x.vue` out
+  return normalizedPath.startsWith(`${normalizePath(layoutDirPath)}/`)
+}
+
+/**
+ * Pages whose `layout` differs from the previous pages.json read.
+ * Pages are matched by `path`, so reordering pages.json is not a change.
+ */
+export function getPagesWithChangedLayout(pages: Page[], prePages: Page[]): Page[] {
+  const preByPath = new Map(prePages.map(page => [
+    normalizePath(page.path),
+    page,
+  ]))
+  return pages.filter((page) => {
+    const pre = preByPath.get(normalizePath(page.path))
+    return !!pre && pre.layout !== page.layout
+  })
+}
+
+/**
+ * Dev server URL of a source file that sits next to pages.json, e.g.
+ * `/src/pages/index/index.vue` or `/pages/index/index.vue` in a project without
+ * a `src` directory. Page paths in pages.json are relative to pages.json itself.
+ */
+export function getSourceUrl(pageJsonPath: string, relativePath: string): string {
+  return normalizePath(join('/', dirname(pageJsonPath), relativePath))
 }
