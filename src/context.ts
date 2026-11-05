@@ -50,7 +50,7 @@ export class Context {
         return
 
       const prePages = this.pages
-      this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
+      this.reloadPages()
 
       const server = this._server
       if (!server)
@@ -73,6 +73,22 @@ export class Context {
         return
       await this.reloadLayouts()
     })
+  }
+
+  /**
+   * Read pages.json again. An in-flight save can leave the file empty for a
+   * moment, and a throw inside a watcher listener takes the whole dev server
+   * down, so a failed read keeps the last good page list.
+   */
+  reloadPages(): void {
+    try {
+      this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
+    }
+    catch (error) {
+      // the reason goes into the message: a dev-server console wrapper can drop
+      // extra arguments and print an object as `{}`
+      console.warn(`[vite-plugin-uni-layouts] failed to read ${this.pageJsonPath}, keeping the previous page list: ${String(error)}`)
+    }
   }
 
   /** Invalidate both possible sources of a page: `.vue` and `.nvue`. */

@@ -2,7 +2,7 @@ import type { FSWatcher } from 'chokidar'
 import type { ViteDevServer } from 'vite'
 import { resolve } from 'node:path'
 import process from 'node:process'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { Context } from '../src/context'
 import { resolveOptions } from '../src/utils'
 
@@ -68,6 +68,29 @@ it('reloads pages.json without a dev server', async () => {
     'pages/index/test',
     'pages/index/disabled',
   ])
+})
+
+it('keeps the page list when pages.json cannot be read', async () => {
+  const ctx = createContext()
+  // an in-flight save leaves an empty file behind for a moment
+  const pageJsonPath = resolve(cwd, 'src/pages-empty.json')
+  ctx.pageJsonPath = 'src/pages-empty.json'
+  const { watcher, handlers } = createWatcher()
+  await ctx.setupWatcher(watcher)
+  ctx.pages = [
+    { path: 'pages/index/index' },
+  ]
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+  await expect(handlers.change(pageJsonPath)).resolves.toBeUndefined()
+
+  expect(ctx.pages).toEqual([
+    { path: 'pages/index/index' },
+  ])
+  expect(warn).toHaveBeenCalledWith(
+    expect.stringContaining('failed to read src/pages-empty.json'),
+  )
+  warn.mockRestore()
 })
 
 it('reloads only the pages whose layout changed', async () => {
