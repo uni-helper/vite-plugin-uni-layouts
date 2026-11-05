@@ -210,10 +210,11 @@ export async function invalidateAndReload(filePath: string, server: ViteDevServe
   await server.reloadModule(module)
 }
 
-/** Whether a watcher path is a `.vue` / `.nvue` file inside the layouts directory. */
+/** Whether a watcher path is a `.vue` file inside the layouts directory. */
 export function isLayoutFile(filePath: string, layoutDirPath: string): boolean {
   const normalizedPath = normalizePath(filePath)
-  if (!normalizedPath.endsWith('.vue') && !normalizedPath.endsWith('.nvue'))
+  // `scanLayouts` only picks up `.vue`, so other extensions are not layouts
+  if (!normalizedPath.endsWith('.vue'))
     return false
 
   // the separator keeps a sibling like `src/layouts-old/x.vue` out

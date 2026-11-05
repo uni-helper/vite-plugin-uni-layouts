@@ -4,10 +4,9 @@ import { isLayoutFile } from '../src/utils'
 
 const layoutDir = '/project/src/layouts'
 
-it('accepts vue and nvue files inside the layouts directory', () => {
+it('accepts vue files inside the layouts directory', () => {
   expect(isLayoutFile('/project/src/layouts/default.vue', layoutDir)).toBe(true)
   expect(isLayoutFile('/project/src/layouts/blog/index.vue', layoutDir)).toBe(true)
-  expect(isLayoutFile('/project/src/layouts/native.nvue', layoutDir)).toBe(true)
 })
 
 it('rejects a sibling directory that shares the prefix', () => {
@@ -15,6 +14,8 @@ it('rejects a sibling directory that shares the prefix', () => {
 })
 
 it('rejects files that are not layouts', () => {
+  // scanLayouts only reads `.vue`, so an `.nvue` file there changes nothing
+  expect(isLayoutFile('/project/src/layouts/native.nvue', layoutDir)).toBe(false)
   expect(isLayoutFile('/project/src/layouts/README.md', layoutDir)).toBe(false)
   expect(isLayoutFile('/project/src/pages/index/index.vue', layoutDir)).toBe(false)
 })

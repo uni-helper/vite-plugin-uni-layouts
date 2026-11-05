@@ -318,7 +318,7 @@ const locked = ref(false)
 dev server 下改这些不用重启：
 
 - 改 pages.json 里某个页面的 `layout`，只有这一页重新编译，其他页面不动。
-- 在布局目录里新增或删除 `.vue` / `.nvue`，插件会重扫布局，页面也用上新布局；删掉的布局从页面模板里去掉。
+- 在布局目录里新增或删除 `.vue`，插件会重扫布局，页面也用上新布局；删掉的布局从页面模板里去掉。
 
 `vite build --watch` 没有 dev server，pages.json 的变化只更新插件记下的页面列表，下一次构建生效。
 
