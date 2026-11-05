@@ -257,6 +257,8 @@ const locked = ref(false)
 
 只处理页面模板顶层的 `<page-meta>`，写在其他节点里面的不受影响，也不会生效。`layout: false` 的页面模板不动，页面本身就是根节点，`<page-meta>` 写在第一个位置就行。
 
+不要用 `v-if` / `v-for` 切换 `<page-meta>`：小程序端规定它只能是页面第一个节点，且不能被 `wx:if` / `wx:for` 动态增删。条件写在 `<page-meta>` 上，编译出来是 `<page-meta wx:if="..."/>`，渲染层会报错：「只能是页面内的第一个节点，且不能被 wx:if 或 wx:for 动态变更」。要切换配置就改绑定的属性值，上面的例子里改的是 `page-style`。
+
 ### 选项
 
 `UniLayouts(options)` 只有三个字段：`layout` 是默认布局名（默认 `default`），`layoutDir` 是布局目录（默认 `src/layouts`），`cwd` 是路径基准（默认 `process.cwd()`）。
