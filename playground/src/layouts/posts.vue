@@ -1,8 +1,9 @@
 <script lang="ts" setup>
-import { ref } from "vue";
+import { ref } from 'vue'
 
-const footer = ref("@uni-helper");
+const footer = ref('@uni-helper')
 </script>
+
 <template>
   <view>
     <view class="header">
@@ -10,7 +11,9 @@ const footer = ref("@uni-helper");
     </view>
     <view><slot>main</slot></view>
     <view>
-      <slot name="footer">{{ footer }}</slot>
+      <slot name="footer">
+        {{ footer }}
+      </slot>
     </view>
   </view>
 </template>

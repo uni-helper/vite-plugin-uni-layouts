@@ -1,16 +1,17 @@
-import { resolve } from 'node:path'
-import fs from 'node:fs'
 import type { Node } from '@babel/types'
-import { isMp } from '@uni-helper/uni-env'
 import type { AttributeNode, DirectiveNode, ElementNode, SimpleExpressionNode } from '@vue/compiler-core'
+import type { FSWatcher } from 'chokidar'
+import type { ResolvedConfig, ViteDevServer } from 'vite'
+import type { Layout, Page, ResolvedOptions } from './types'
+import fs from 'node:fs'
+import { resolve } from 'node:path'
+import { isMp } from '@uni-helper/uni-env'
 import { babelParse, walkAST } from 'ast-kit'
 import MagicString from 'magic-string'
 import { kebabCase } from 'scule'
-import type { FSWatcher, ResolvedConfig, ViteDevServer } from 'vite'
 import { normalizePath } from 'vite'
 import { virtualModuleId } from './constant'
 import { scanLayouts } from './scan'
-import type { Layout, Page, ResolvedOptions } from './types'
 import { getTarget, invalidateAndReload, isLayoutFile, loadPagesJson, parseSFC } from './utils'
 
 export class Context {
@@ -35,7 +36,7 @@ export class Context {
     this.pageJsonPath = 'src/pages.json'
   }
 
-  setupViteServer(server: ViteDevServer) {
+  setupViteServer(server: ViteDevServer): void {
     if (this._server === server)
       return
 
@@ -43,7 +44,7 @@ export class Context {
     this.setupWatcher(server.watcher)
   }
 
-  async setupWatcher(watcher: FSWatcher) {
+  async setupWatcher(watcher: FSWatcher): Promise<void> {
     watcher.on('change', async (path) => {
       if (!path.includes(this.pageJsonPath))
         return
@@ -52,7 +53,10 @@ export class Context {
       this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
 
       // 找出 layout 发生变化的页面（按 path 对齐）
-      const preByPath = new Map(prePages.map(p => [normalizePath(p.path), p]))
+      const preByPath = new Map(prePages.map(p => [
+        normalizePath(p.path),
+        p,
+      ]))
       const changedPages = this.pages.filter((newPage) => {
         const pre = preByPath.get(normalizePath(newPage.path))
         return pre && pre.layout !== newPage.layout
@@ -99,7 +103,7 @@ export class Context {
   }
 
   /** 重新扫描 layouts 目录，生成 layouts 列表，并触发 HMR 更新 */
-  reloadLayouts() {
+  reloadLayouts(): void {
     this.layouts = scanLayouts(this.layoutDirPath)
 
     if (!this._server)
@@ -113,12 +117,20 @@ export class Context {
     }
 
     // 使 main.ts/main.js 失效，触发 transform 中的 importLayoutComponents 重新执行
-    const mainFiles = ['/src/main.ts', '/src/main.js', '/main.ts', '/main.js']
+    const mainFiles = [
+      '/src/main.ts',
+      '/src/main.js',
+      '/main.ts',
+      '/main.js',
+    ]
     for (const mainFile of mainFiles)
       invalidateAndReload(mainFile, this._server)
   }
 
-  async transform(code: string, path: string) {
+  async transform(code: string, path: string): Promise<{
+    code: string
+    map: string
+  } | undefined> {
     // no layouts
     if (!this.layouts.length)
       return
@@ -168,8 +180,8 @@ export class Context {
               = node.id.type === 'Identifier' && node.id.name === 'uniLayout'
             const isRef
               = node.init?.type === 'CallExpression'
-              && node.init.callee.type === 'Identifier'
-              && node.init.callee.name === 'ref'
+                && node.init.callee.type === 'Identifier'
+                && node.init.callee.name === 'ref'
             if (hasUniLayoutVar && isRef)
               pageLayoutProps.push('ref="uniLayout"')
           }
@@ -187,8 +199,29 @@ export class Context {
       ms.overwrite(uniLayoutNode.loc.start.offset, uniLayoutNode.loc.end.offset, this.generateDynamicLayout(uniLayoutNode))
     }
     else {
-      if (sfc.template?.loc.start.offset && sfc.template?.loc.end.offset)
-        ms.overwrite(sfc.template?.loc.start.offset, sfc.template?.loc.end.offset, `\n<layout-${pageLayout?.kebabName}-uni ${pageLayoutProps.join(' ')}>${sfc.template.content}</layout-${pageLayout?.kebabName}-uni>\n`)
+      if (sfc.template?.loc.start.offset && sfc.template?.loc.end.offset) {
+        // `<page-meta>` only takes effect as the first node of a page, so render
+        // it before the layout wrapper instead of inside it. Only top-level
+        // nodes are hoisted; a nested one cannot work either way
+        // exact tag only: `<PageMeta>` would be a user component, not the built-in
+        const pageMetaNodes = (sfc.template.ast?.children ?? []).filter(
+          v => v.type === 1 && v.tag === 'page-meta',
+        ) as ElementNode[]
+        const pageMetas = pageMetaNodes.map(v => v.loc.source).join('\n')
+        const templateStart = sfc.template.loc.start.offset
+        let pageContent = sfc.template.content
+        // drop the page-meta nodes from the page content, walking from the end
+        // so the offsets of the earlier nodes stay valid
+        for (const node of [...pageMetaNodes].reverse()) {
+          pageContent = pageContent.slice(0, node.loc.start.offset - templateStart)
+            + pageContent.slice(node.loc.end.offset - templateStart)
+        }
+
+        const before = pageMetas
+          ? `${pageMetas}\n`
+          : ''
+        ms.overwrite(templateStart, sfc.template.loc.end.offset, `\n${before}<layout-${pageLayout?.kebabName}-uni ${pageLayoutProps.join(' ')}>${pageContent}</layout-${pageLayout?.kebabName}-uni>\n`)
+      }
     }
 
     if (ms.hasChanged()) {
@@ -199,12 +232,14 @@ export class Context {
       })
       return {
         code: ms.toString(),
-        map,
+        // magic-string's SourceMap class does not satisfy vite's map type, so
+        // pass it as the JSON string vite accepts
+        map: map.toString(),
       }
     }
   }
 
-  async virtualModule() {
+  async virtualModule(): Promise<string> {
     const imports: string[] = []
     const components: string[] = []
     const _exports = this.layouts.map((v) => {
@@ -227,7 +262,7 @@ export default {
 }`
   }
 
-  generateDynamicLayout(node: ElementNode) {
+  generateDynamicLayout(node: ElementNode): string {
     const staticLayoutNameBind = node.props.find(
       v => v.type === 6 && v.name === 'name' && v.value?.content,
     ) as AttributeNode
@@ -257,7 +292,12 @@ export default {
         return v
       })
       const defaultSlotSource = defaultSlot.map(v => v.loc.source).join('\n')
-      const layouts = this.layouts.map((layout, index) => `<layout-${layout.kebabName}-uni v-${index === 0 ? 'if' : 'else-if'}="${bind} ==='${layout.kebabName}'" ${props.join(' ')}>${slotsSource}</layout-${layout.kebabName}-uni>`)
+      const layouts = this.layouts.map((layout, index) => {
+        const directive = index === 0
+          ? 'if'
+          : 'else-if'
+        return `<layout-${layout.kebabName}-uni v-${directive}="${bind} ==='${layout.kebabName}'" ${props.join(' ')}>${slotsSource}</layout-${layout.kebabName}-uni>`
+      })
       layouts.push(`<template v-else>${defaultSlotSource}</template>`)
 
       return layouts.join('\n')
@@ -272,7 +312,10 @@ export default {
     }
   }
 
-  async importLayoutComponents(code: string, id: string) {
+  async importLayoutComponents(code: string, id: string): Promise<{
+    code: string
+    map: string
+  }> {
     const ms = new MagicString(code)
     const imports: string[] = []
     const components: string[] = []
@@ -286,7 +329,7 @@ export default {
     }
     ms.append(imports.join('\n'))
     ms.replace(
-      /(createApp[\s\S]*?)(return\s{\s*app)/,
+      /(createApp[\s\S]*?)(return\s\{\s*app)/,
       `$1${components.join('')}$2`,
     )
     const map = ms.generateMap({
@@ -297,7 +340,7 @@ export default {
     code = ms.toString()
     return {
       code,
-      map,
+      map: map.toString(),
     }
   }
 }

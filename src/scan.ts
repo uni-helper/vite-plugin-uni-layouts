@@ -1,11 +1,13 @@
-import { basename, dirname, extname, join, relative } from 'node:path'
-import fg from 'fast-glob'
-import { camelCase, kebabCase, pascalCase, splitByCase } from 'scule'
-import { normalizePath } from 'vite'
 import type { Layout } from './types'
+import { basename, dirname, extname, join, relative, resolve } from 'node:path'
+import process from 'node:process'
+import { camelCase, kebabCase, pascalCase, splitByCase } from 'scule'
+import { globSync } from 'tinyglobby'
+import { normalizePath } from 'vite'
 
-export function scanLayouts(dir: string) {
-  const files = fg.sync('**/*.vue', {
+export function scanLayouts(dir = 'src/layouts', cwd = process.cwd()): Layout[] {
+  dir = resolve(cwd, dir)
+  const files = globSync('**/*.vue', {
     onlyFiles: true,
     ignore: ['node_modules', '.git', '**/__*__/*'],
     cwd: dir,
@@ -29,9 +31,10 @@ export function scanLayouts(dir: string) {
     while (
       dirNameParts.length
       && (dirNameParts[0] || '').toLowerCase()
-        !== (fileNameParts[0] || '').toLowerCase()
-    )
+      !== (fileNameParts[0] || '').toLowerCase()
+    ) {
       componentNameParts.push(dirNameParts.shift()!)
+    }
 
     const pascalName
       = pascalCase(componentNameParts) + pascalCase(fileNameParts)
