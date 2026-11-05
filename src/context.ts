@@ -118,8 +118,9 @@ export class Context {
         // `<page-meta>` only takes effect as the first node of a page, so render
         // it before the layout wrapper instead of inside it. Only top-level
         // nodes are hoisted; a nested one cannot work either way
+        // exact tag only: `<PageMeta>` would be a user component, not the built-in
         const pageMetaNodes = (sfc.template.ast?.children ?? []).filter(
-          v => v.type === 1 && kebabCase(v.tag) === 'page-meta',
+          v => v.type === 1 && v.tag === 'page-meta',
         ) as ElementNode[]
         const pageMetas = pageMetaNodes.map(v => v.loc.source).join('\n')
         const templateStart = sfc.template.loc.start.offset

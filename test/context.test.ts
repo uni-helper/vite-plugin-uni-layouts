@@ -46,6 +46,16 @@ it('hoist page-meta out of the layout', async () => {
   )
   expect(code?.code).toMatchSnapshot()
 })
+it('leave a PageMeta component inside the layout', async () => {
+  const code = await ctx.transform(
+    `<template>
+  <PageMeta />
+  <view>hello</view>
+</template>`,
+    `${ctx.options.cwd}/src/pages/index/index.vue`,
+  )
+  expect(code?.code).toMatchSnapshot()
+})
 it('keep page-meta in place when layout is disabled', async () => {
   const code = await ctx.transform(
     `<template>
