@@ -234,6 +234,29 @@ const uniLayout = ref()
 
 Options API 里用 `this.$refs.uniLayout`。
 
+### page-meta
+
+`<page-meta>` 只有作为页面第一个节点才生效，被布局组件包住就失效了。插件包裹页面时会把它提出来，放到布局组件前面：
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const locked = ref(false)
+</script>
+
+<template>
+  <page-meta :page-style="`overflow:${locked ? 'hidden' : 'visible'}`" />
+  <view class="content">
+    页面内容
+  </view>
+</template>
+```
+
+上面的页面最终渲染成 `<page-meta>` 在外面、布局组件在里面，打开弹窗时用 `page-style` 锁住页面滚动。
+
+只处理页面模板顶层的 `<page-meta>`，写在其他节点里面的不受影响，也不会生效。`layout: false` 的页面模板不动，页面本身就是根节点，`<page-meta>` 写在第一个位置就行。
+
 ### 选项
 
 `UniLayouts(options)` 只有三个字段：`layout` 是默认布局名（默认 `default`），`layoutDir` 是布局目录（默认 `src/layouts`），`cwd` 是路径基准（默认 `process.cwd()`）。
@@ -241,6 +264,8 @@ Options API 里用 `this.$refs.uniLayout`。
 ## 注意
 
 微信小程序下用了 `web-view` 的页面拿不到布局。插件改的是页面模板，`web-view` 的内容不在模板里。
+
+以前写在布局包裹页面里的 `<page-meta>` 不生效，现在会被提到布局外面。升级后这些页面里原本无效的 `<page-meta>` 配置会开始起作用。
 
 ## 破坏性更新
 

@@ -114,8 +114,29 @@ export class Context {
       ms.overwrite(uniLayoutNode.loc.start.offset, uniLayoutNode.loc.end.offset, this.generateDynamicLayout(uniLayoutNode))
     }
     else {
-      if (sfc.template?.loc.start.offset && sfc.template?.loc.end.offset)
-        ms.overwrite(sfc.template?.loc.start.offset, sfc.template?.loc.end.offset, `\n<layout-${pageLayout?.kebabName}-uni ${pageLayoutProps.join(' ')}>${sfc.template.content}</layout-${pageLayout?.kebabName}-uni>\n`)
+      if (sfc.template?.loc.start.offset && sfc.template?.loc.end.offset) {
+        // `<page-meta>` only takes effect as the first node of a page, so render
+        // it before the layout wrapper instead of inside it. Only top-level
+        // nodes are hoisted; a nested one cannot work either way
+        // exact tag only: `<PageMeta>` would be a user component, not the built-in
+        const pageMetaNodes = (sfc.template.ast?.children ?? []).filter(
+          v => v.type === 1 && v.tag === 'page-meta',
+        ) as ElementNode[]
+        const pageMetas = pageMetaNodes.map(v => v.loc.source).join('\n')
+        const templateStart = sfc.template.loc.start.offset
+        let pageContent = sfc.template.content
+        // drop the page-meta nodes from the page content, walking from the end
+        // so the offsets of the earlier nodes stay valid
+        for (const node of [...pageMetaNodes].reverse()) {
+          pageContent = pageContent.slice(0, node.loc.start.offset - templateStart)
+            + pageContent.slice(node.loc.end.offset - templateStart)
+        }
+
+        const before = pageMetas
+          ? `${pageMetas}\n`
+          : ''
+        ms.overwrite(templateStart, sfc.template.loc.end.offset, `\n${before}<layout-${pageLayout?.kebabName}-uni ${pageLayoutProps.join(' ')}>${pageContent}</layout-${pageLayout?.kebabName}-uni>\n`)
+      }
     }
 
     if (ms.hasChanged()) {
