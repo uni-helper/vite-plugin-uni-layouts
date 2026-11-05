@@ -56,13 +56,7 @@ export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()): Pag
  * @returns The parsed pages.json object.
  */
 export function parsePagesJson(content: string, platform: string): Record<string, any> {
-  try {
-    const preprocessed = preprocess(content, platform)
-    return jsonParse(preprocessed)
-  }
-  catch {
-    return {}
-  }
+  return jsonParse(preprocess(content, platform))
 }
 
 function getPlatformContext(platform: string): Record<string, boolean> {
