@@ -117,7 +117,10 @@ export class Context {
       await invalidateAndReload(getSourceUrl(this.pageJsonPath, `main${ext}`), server)
 
     // an open page keeps the wrapper from the layout list it was transformed
-    // with, so a page that gains or loses a layout has to be transformed again
+    // with, so it needs the page modules again; `transform` also bails out while
+    // no layout exists, which leaves the page list empty even with pages open
+    if (!this.pages.length)
+      this.reloadPages()
     for (const page of this.pages)
       await this.reloadPage(page, server)
   }

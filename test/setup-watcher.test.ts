@@ -136,6 +136,25 @@ it('invalidates the open pages when a layout appears', async () => {
   ])
 })
 
+it('loads the page list when the first layout appears', async () => {
+  const ctx = createContext()
+  // the project started without a layouts directory, so pages were transformed
+  // without a wrapper and the page list was never read
+  ctx.layouts = []
+  await ctx.transform('<template><view /></template>', resolve(cwd, 'src/pages/index/index.vue'))
+  expect(ctx.pages).toEqual([])
+  const { server, handlers, reloaded } = createServer()
+  ctx.setupViteServer(server)
+
+  await handlers.add(resolve(cwd, 'src/layouts/extra.vue'))
+
+  expect(reloaded).toEqual([
+    '/src/pages/index/index.vue',
+    '/src/pages/index/test.vue',
+    '/src/pages/index/disabled.vue',
+  ])
+})
+
 it('ignores files outside the layouts directory', async () => {
   const ctx = createContext()
   await ctx.transform('<template><view /></template>', resolve(cwd, 'src/pages/index/index.vue'))
