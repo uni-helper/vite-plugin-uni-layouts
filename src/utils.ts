@@ -72,6 +72,8 @@ function getPlatformContext(platform: string): Record<string, boolean> {
   const p = platform.toUpperCase()
   if (p) {
     ctx[p] = true
+    // uni accepts "mp-weixin" and "mp_weixin" as the same platform
+    ctx[p.replace(/-/g, '_')] = true
     if (p.startsWith('APP-'))
       ctx.APP = true
 

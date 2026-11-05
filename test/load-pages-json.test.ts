@@ -149,4 +149,22 @@ describe('parsePagesJson', () => {
       ],
     })
   })
+  it('platform name with underscores', () => {
+    const jsonString = `{
+      "pages": [
+        // #ifdef MP_WEIXIN
+        {
+          "path": "pages/index/index"
+        }
+        // #endif
+      ]
+    }`
+    expect(parsePagesJson(jsonString, 'MP-WEIXIN')).toEqual({
+      pages: [
+        {
+          path: 'pages/index/index',
+        },
+      ],
+    })
+  })
 })
