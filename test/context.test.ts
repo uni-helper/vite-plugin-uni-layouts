@@ -174,7 +174,8 @@ it('warn once when the layout directory has no layouts', async () => {
   }
 
   expect(warn).toHaveBeenCalledOnce()
-  expect(warn.mock.calls[0][0]).toContain('src/layouts/missing')
+  // the message prints the resolved directory, which separates with `\` on Windows
+  expect(warn.mock.calls[0][0].replaceAll('\\', '/')).toContain('src/layouts/missing')
 })
 
 it('warn when a page falls back to a missing default layout', async () => {
