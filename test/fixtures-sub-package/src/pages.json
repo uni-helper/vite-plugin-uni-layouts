@@ -1,0 +1,40 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index"
+    }
+  ],
+  "subPackages": [
+    {
+      "root": "pages-sub",
+      "pages": [
+        // 两个平台给同一个页面配了不同的 layout。读错平台那条，页面就会
+        // 套上别的平台的布局；H5 那条没有 layout 时则回落默认布局
+        // #ifdef H5
+        {
+          "path": "list/index",
+          "layout": "web"
+        },
+        // #endif
+        // #ifdef MP-WEIXIN
+        {
+          "path": "list/index",
+          "layout": false
+        },
+        // #endif
+        // #ifdef H5
+        {
+          "path": "list/named",
+          "layout": "web"
+        },
+        // #endif
+        // #ifdef MP-WEIXIN
+        {
+          "path": "list/named",
+          "layout": "tabbar"
+        }
+        // #endif
+      ]
+    }
+  ]
+}
