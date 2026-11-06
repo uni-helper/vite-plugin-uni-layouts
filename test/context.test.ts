@@ -32,9 +32,9 @@ it('use test layout', async () => {
 it('use inline layout', async () => {
   const code = await ctx.transform(
     `<template>
-    <UniLayout name="camelLayout">
+    <UhUniLayout name="camelLayout">
         <main></main>
-    </UniLayout>
+    </UhUniLayout>
   </template>`,
     `${ctx.options.cwd}/src/pages/index/disabled.vue`,
   )
@@ -64,9 +64,9 @@ it('keep page-meta in place when layout is disabled', async () => {
   const code = await ctx.transform(
     `<template>
   <page-meta :page-style="pageStyle"></page-meta>
-  <UniLayout name="camelLayout">
+  <UhUniLayout name="camelLayout">
     <main></main>
-  </UniLayout>
+  </UhUniLayout>
 </template>`,
     `${ctx.options.cwd}/src/pages/index/disabled.vue`,
   )
@@ -75,7 +75,7 @@ it('keep page-meta in place when layout is disabled', async () => {
 it('bind a named layout ref', async () => {
   const code = await ctx.transform(
     `<script setup>
-const layout = useUniLayoutRef()
+const layout = useUhUniLayoutRef()
 </script>
 <template><div>hello</div></template>`,
     `${ctx.options.cwd}/src/pages/index/index.vue`,
@@ -107,12 +107,12 @@ const title = ref('hello')
 it('bind the layout ref on the dynamic layout', async () => {
   const code = await ctx.transform(
     `<script setup>
-const layout = useUniLayoutRef()
+const layout = useUhUniLayoutRef()
 </script>
 <template>
-  <UniLayout name="camelLayout">
+  <UhUniLayout name="camelLayout">
     <main></main>
-  </UniLayout>
+  </UhUniLayout>
 </template>`,
     `${ctx.options.cwd}/src/pages/index/disabled.vue`,
   )
@@ -121,12 +121,12 @@ const layout = useUniLayoutRef()
 it('keep the ref written on the dynamic layout', async () => {
   const code = await ctx.transform(
     `<script setup>
-const layout = useUniLayoutRef()
+const layout = useUhUniLayoutRef()
 </script>
 <template>
-  <UniLayout ref="myLayout" name="camelLayout">
+  <UhUniLayout ref="myLayout" name="camelLayout">
     <main></main>
-  </UniLayout>
+  </UhUniLayout>
 </template>`,
     `${ctx.options.cwd}/src/pages/index/disabled.vue`,
   )
@@ -196,4 +196,27 @@ it('warn when a page falls back to a missing default layout', async () => {
   expect(code).toBeUndefined()
   expect(warn).toHaveBeenCalledOnce()
   expect(warn.mock.calls[0][0]).toContain('uses the default layout "default"')
+})
+
+it('warn about the renamed uni-layout tag', async () => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const legacy = await ctx.transform(
+    `<template><uni-layout name="camelLayout"><main></main></uni-layout></template>`,
+    `${ctx.options.cwd}/src/pages/index/disabled.vue`,
+  )
+
+  // the page is left alone, so without the warning a leftover tag that no
+  // longer matches looks the same as a page that needs no layout
+  expect(legacy).toBeUndefined()
+  expect(warn).toHaveBeenCalledOnce()
+  expect(warn.mock.calls[0][0]).toContain('<uh-uni-layout>')
+
+  warn.mockClear()
+  const current = await ctx.transform(
+    `<template><uh-uni-layout name="camelLayout"><main></main></uh-uni-layout></template>`,
+    `${ctx.options.cwd}/src/pages/index/disabled.vue`,
+  )
+
+  expect(current?.code).toContain('<component')
+  expect(warn).not.toHaveBeenCalled()
 })

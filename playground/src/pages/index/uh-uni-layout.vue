@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useUniLayoutRef } from 'virtual:uni-layouts'
+import { useUhUniLayoutRef } from 'virtual:uni-layouts'
 import { ref, watch } from 'vue'
 
 definePage({
@@ -7,7 +7,7 @@ definePage({
 })
 
 const layoutName = ref<string | boolean>('default')
-const layout = useUniLayoutRef()
+const layout = useUhUniLayoutRef()
 
 // the mini program does not clear the ref when the layout disappears
 watch(layoutName, () => {
@@ -32,13 +32,13 @@ function handleSwitch() {
     switch
   </button>
   <view>layout: {{ layout ? 'mounted' : 'none' }}</view>
-  <uni-layout :name="layoutName">
+  <uh-uni-layout :name="layoutName">
     <template #header>
-      uni-layout header
+      uh-uni-layout header
     </template>
     currentLayoutName: {{ layoutName }}
     <template #footer>
-      uni-layout footer
+      uh-uni-layout footer
     </template>
-  </uni-layout>
+  </uh-uni-layout>
 </template>

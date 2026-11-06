@@ -18,12 +18,12 @@ it('puts the layout ref on every branch of the mini program layout chain', async
   }))
   const code = await ctx.transform(
     `<script setup>
-const layout = useUniLayoutRef()
+const layout = useUhUniLayoutRef()
 </script>
 <template>
-  <UniLayout :name="layoutName">
+  <UhUniLayout :name="layoutName">
     <main></main>
-  </UniLayout>
+  </UhUniLayout>
 </template>`,
     `${ctx.options.cwd}/src/pages/index/disabled.vue`,
   )

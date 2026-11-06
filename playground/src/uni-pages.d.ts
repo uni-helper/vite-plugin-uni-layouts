@@ -9,7 +9,7 @@ type _LocationUrl =
   "/pages/index/index" |
   "/pages/index/disabled" |
   "/pages/index/layout-ref" |
-  "/pages/index/uni-layout" |
+  "/pages/index/uh-uni-layout" |
   "/pages-sub/test/test";
 
 interface NavigateToOptions {

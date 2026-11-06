@@ -203,14 +203,24 @@ export class Context {
       ? `ref="${layoutRefName}"`
       : ''
 
+    // `<uni-layout>` was the tag up to v0.2. uni-app's H5 compiler counts that
+    // name as one of its own custom elements, so a page that keeps it loses the
+    // layout without a word, or fails to compile when it fills named slots
+    const templateChildren = sfc.template?.ast?.children ?? []
+    const dynamicLayoutNode = templateChildren.find(
+      v => v.type === 1 && kebabCase(v.tag) === 'uh-uni-layout',
+    ) as ElementNode | undefined
+
+    if (templateChildren.some(v => v.type === 1 && kebabCase(v.tag) === 'uni-layout')) {
+      console.warn(`[vite-plugin-uni-layouts] page "${page.path}" still uses <uni-layout>, which was renamed to <uh-uni-layout>`)
+    }
+
     if (disabled) {
-      // find dynamic layout
-      const uniLayoutNode = sfc.template?.ast?.children.find(v => v.type === 1 && kebabCase(v.tag) === 'uni-layout') as ElementNode
       // not found
-      if (!uniLayoutNode)
+      if (!dynamicLayoutNode)
         return
 
-      ms.overwrite(uniLayoutNode.loc.start.offset, uniLayoutNode.loc.end.offset, this.generateDynamicLayout(uniLayoutNode, layoutRefProp))
+      ms.overwrite(dynamicLayoutNode.loc.start.offset, dynamicLayoutNode.loc.end.offset, this.generateDynamicLayout(dynamicLayoutNode, layoutRefProp))
     }
     else {
       if (sfc.template?.loc.start.offset && sfc.template?.loc.end.offset) {
@@ -291,7 +301,7 @@ ${runtimeModuleCode}export default {
 
     // the page side ref lands on the tag that actually renders; the other
     // branches of the mini program chain are never mounted. A ref written on
-    // `<uni-layout>` itself wins, so the page keeps its own access
+    // `<uh-uni-layout>` itself wins, so the page keeps its own access
     const hasOwnRef = node.props.some(prop => (prop.type === 6 && prop.name === 'ref')
       || (prop.type === 7 && prop.name === 'bind' && prop.arg?.type === 4 && prop.arg.content === 'ref'))
     const refProp = hasOwnRef ? '' : layoutRefProp
