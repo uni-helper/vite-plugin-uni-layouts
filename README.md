@@ -21,13 +21,13 @@ Vite 下 uni-app 的可定制布局框架。构建时扫描 `src/layouts`，把�
 
 不想看文档？直接问 AI 🤖 <a href="https://deepwiki.com/uni-helper/vite-plugin-uni-layouts"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 
+> **请考虑持续[赞助](https://github.com/ModyQyW/sponsors)以维持该项目的持续健康发展，非常感谢！🙏**
+
 ## 安装
 
 ```bash
 pnpm i -D @uni-helper/vite-plugin-uni-layouts
 ```
-
-需要 Node.js `^22.22.2 || ^24.15.0 || >=26.0.0`。0.2 起只提供 ESM 入口，Vite 配置要按 ESM 加载。
 
 ## 使用
 
@@ -44,7 +44,7 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [
-    UniLayouts(), // 需要在 Uni() 之前调用
+    UniLayouts(),
     Uni(),
   ],
 })
@@ -52,7 +52,7 @@ export default defineConfig({
 
 ### 和 vite-plugin-uni-pages 一起用
 
-页面配置放在 pages.json 里，手写很麻烦，多数项目用 [vite-plugin-uni-pages](https://github.com/uni-helper/vite-plugin-uni-pages) 生成。两个一起用时这样写：
+默认地，页面配置放在 `pages.json` 里，需要手动更新，比较麻烦。推荐使用 [@uni-helper/vite-plugin-uni-pages](https://github.com/uni-helper/vite-plugin-uni-pages) 自动扫描并生成 `pages.json`。
 
 ```ts
 // vite.config.mts
@@ -63,23 +63,14 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [
-    UniPages({
-      subPackages: [
-        'src/pages-sub',
-      ],
-      dts: 'src/uni-pages.d.ts',
-    }),
+    UniPages(),
     UniLayouts(),
     Uni(),
   ],
 })
 ```
 
-`UniPages()` 要放在 `Uni()` 前面，这是 uni-pages 的要求。`subPackages` 和 `dts` 是它的选项，跟布局无关：`subPackages` 的目录相对 Vite root，`dts` 是生成类型声明的路径。布局插件不用额外配置，它读的就是 uni-pages 写出来的 pages.json。
-
-pages.json 的位置是固定的：项目里有 `src` 目录时读 `src/pages.json`，否则读根目录的 `pages.json`。uni-pages 的 `outDir` 保持默认的 `src` 即可，改成别的目录后布局插件找不到页面。
-
-想让 `definePage` 有类型提示，把 uni-pages 的 client 类型加进 tsconfig 的 `types`：
+`@uni-helper/vite-plugin-uni-pages` 还提供了 `definePage`。要支持类型提示，需要设置 `tsconfig.json`。
 
 ```json
 {
@@ -89,9 +80,11 @@ pages.json 的位置是固定的：项目里有 `src` 目录时读 `src/pages.js
 }
 ```
 
+更多内容请查看 `@uni-helper/vite-plugin-uni-pages` [仓库](https://github.com/uni-helper/vite-plugin-uni-pages)或[文档](https://uni-helper.js.org/vite-plugin-uni-pages)。
+
 ### 创建布局
 
-布局放在 `src/layouts`（`layoutDir` 选项可以换目录）。布局就是普通 Vue 组件，默认插槽放页面内容，具名插槽给页面留着位置。
+默认情况下，布局文件需要放在 `src/layouts` 目录下，使用 `src/layouts/default.vue` 作为默认布局。一个布局文件就是一个 Vue 组件。
 
 ```vue
 <!-- src/layouts/default.vue -->
@@ -118,9 +111,7 @@ pages.json 的位置是固定的：项目里有 `src` 目录时读 `src/pages.js
 </style>
 ```
 
-具名插槽要靠页面上的 `<uni-layout>` 填，见[动态布局](#动态布局)。
-
-布局名由文件路径推导，页面配置里写的是下面第二列：
+布局名由文件路径推导。
 
 | 文件 | 布局名 |
 | --- | --- |
@@ -128,24 +119,51 @@ pages.json 的位置是固定的：项目里有 `src` 目录时读 `src/pages.js
 | `src/layouts/posts.vue` | `posts` |
 | `src/layouts/Posts.vue` | `posts` |
 | `src/layouts/posts/index.vue` | `posts` |
+| `src/layouts/posts/posts.vue` | `posts` |
 | `src/layouts/kebab-layout.vue` | `kebabLayout` |
 | `src/layouts/no-index/index.vue` | `noIndex` |
 | `src/layouts/blog/posts.vue` | `blogPosts` |
 | `src/layouts/the/nesting/layout.vue` | `theNestingLayout` |
 
-规则有三条：文件名是 `index` 时取目录名；目录段和文件名从头逐段比较，重复的段只算一次，所以 `posts/posts.vue` 也是 `posts`；剩下的部分转成 camelCase，所以 `kebab-layout.vue` 是 `kebabLayout`。
+自 v0.3 起，没有布局文件夹（`layoutDir` 写错、目录为空）时插件会警告一次，所有页面都不套布局。页面写的布局名不存在时也会警告，只有这一页不套布局。
 
-### 应用布局
+要指定布局文件所在目录，需要调整 `layoutDir` 选项，详见[插件配置](#插件配置)。
 
-页面默认用 `default` 布局。换布局时在页面配置里写布局名。
+要使用具名插槽，必须禁用默认布局并使用 `<uni-layout>` 组件，详见[动态布局](#动态布局)。
 
-用 uni-pages 就写进 `definePage` 宏，构建时宏会被删掉，配置由 uni-pages 写进 pages.json：
+### 指定布局
+
+页面默认用 `default` 布局。
+
+如果不使用 `@uni-helper/vite-plugin-uni-pages`，需要手动更新 `pages.json` 来使用指定布局。
+
+```jsonc
+{
+  "pages": [
+    {
+      "path": "pages/index/index"
+      // 默认使用 default 布局
+    },
+    {
+      "path": "pages/posts/index",
+      "layout": "posts" // 使用 posts 布局
+    },
+    {
+      "path": "pages/users/index",
+      "layout": false // 不使用任何布局
+    }
+  ]
+}
+```
+
+如果使用 `@uni-helper/vite-plugin-uni-pages`，可以写入 `definePage` 宏，构建时宏会被删掉并自动更新 `pages.json`。
 
 ```vue
 <!-- src/pages/posts/index.vue -->
 <script setup lang="ts">
 definePage({
-  layout: 'posts',
+  layout: 'posts', // 使用 posts 布局
+  // layout: false, // 不使用任何布局
 })
 </script>
 
@@ -154,26 +172,27 @@ definePage({
 </template>
 ```
 
-没装 uni-pages 就直接写 pages.json：
+### 条件编译
+
+自 v0.3 起，通过条件编译，同一个页面可以给不同平台配不同的 `layout`。
+
+如果不使用 `@uni-helper/vite-plugin-uni-pages`，需要手动更新 `pages.json`，详见 [条件编译处理多端差异](https://uniapp.dcloud.net.cn/tutorial/platform.html)。
 
 ```json
 {
   "pages": [
-    {
-      "path": "pages/posts/index",
-      "layout": "posts"
-    }
+    // #ifdef H5
+    { "path": "pages/index/index", "layout": "home" },
+    // #endif
+    // #ifndef H5
+    { "path": "pages/index/index", "layout": "default" },
+    // #endif
+    { "path": "pages/about/about" }
   ]
 }
 ```
 
-布局名写错不会报错，页面会按没有布局渲染，排查时先核对布局名。
-
-### 条件编译
-
-同一个页面可以给不同平台配不同的 `layout`。
-
-用 uni-pages（v0.5.0 起）时写进 `definePage` 的函数式写法。`define()` 的条件在扫描阶段按当前平台算成普通配置，项目只跑一个平台时，pages.json 里就是这一份结果：
+如果使用 `@uni-helper/vite-plugin-uni-pages`，可以使用 `definePage` 的函数式写法。
 
 ```vue
 <script setup lang="ts">
@@ -184,84 +203,52 @@ definePage(({ define }) =>
 </script>
 ```
 
-`ifdef` / `ifndef` 的平台名用小写，和 `UNI_PLATFORM` 一致：`h5`、`web`、`mp-weixin`、`app-plus`。
-
-多个平台共用一个 pages.json 时，配置不同的条目会各自包进 `#ifdef` 块，等 uni-app 编译时二选一：
-
-```jsonc
-// pages.json，uni-pages 生成
-{
-  "pages": [
-    // GENERATED BY UNI-PAGES, PLATFORM: H5 || MP-WEIXIN
-    // #ifdef H5
-    { "path": "pages/index/index", "layout": "home" },
-    // #endif
-    // #ifdef MP-WEIXIN
-    { "path": "pages/index/index", "layout": "default" },
-    // #endif
-    { "path": "pages/index/disabled" }
-  ]
-}
-```
-
-布局插件读这份文件时按当前平台只取自己那一份，另一个平台的 `layout` 不会串进来。
-
-多个平台共用 pages.json 时也别开 `minify`，别把 `indent` 设成 `0`：注释会被丢掉，`#ifdef` 跟着消失，各平台的条目都留在同一个数组里，页面会套上先出现的那个平台的布局。
-
-没装 uni-pages 就直接写 pages.json，条件写在注释里：
-
-```json
-{
-  "pages": [
-    // #ifdef H5
-    { "path": "pages/index/index", "layout": "home" },
-    // #else
-    { "path": "pages/index/index", "layout": "default" },
-    // #endif
-    { "path": "pages/about/about" }
-  ]
-}
-```
-
-支持 `#ifdef`、`#ifndef`、`#else`、`#endif`，可以嵌套，多个平台用 `||` 连接。`#ifdef` 里的平台名要大写，比如 `H5`、`MP-WEIXIN`、`APP-PLUS`，这是 uni-app 条件编译的写法，小写不生效。
-
-### 禁用布局
-
-`layout: false` 表示这个页面不套布局，模板原样输出。用 uni-pages 时写进 `definePage`：
-
-```vue
-<script setup lang="ts">
-definePage({
-  layout: false,
-})
-</script>
-```
-
-手写 pages.json 时写法一样：
-
-```json
-{
-  "path": "pages/index/index",
-  "layout": false
-}
-```
-
 ### 动态布局
 
-页面禁用布局之后，用内置组件 `<uni-layout>` 指定布局。下面的例子里 `layout: false` 和 `<uni-layout>` 缺一个都不行：
+页面写了 `layout: false` 之后，插件不再自动包裹页面。想套布局或使用具名插槽，用内置组件 `<uni-layout>` 指定已有布局；不需要布局的页面直接写内容就行。
+
+布局示例如下：
+
+```vue
+<!-- src/layouts/named-slots.vue -->
+<template>
+  <view class="layout">
+    <view class="header">
+      <slot name="header">
+        默认标题
+      </slot>
+    </view>
+    <view class="main">
+      <slot>main</slot>
+    </view>
+    <view class="footer">
+      <slot name="footer" />
+    </view>
+  </view>
+</template>
+
+<style>
+.layout {
+  padding: 24rpx;
+}
+</style>
+```
+
+动态布局页面示例如下：
 
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
 
 definePage({
-  layout: false,
+  layout: false, // 禁用默认布局
 })
 
-const name = ref('default')
+const name = ref('namedSlots')
 </script>
 
 <template>
+  <!-- 指定使用 src/layouts/named-slots.vue 作为页面布局 -->
   <uni-layout :name="name">
     <template #header>
       header
@@ -274,28 +261,16 @@ const name = ref('default')
 </template>
 ```
 
-`name` 写布局名，也支持绑定变量；`<uni-layout>` 上的其他属性会透传给布局组件。小程序端展开成每个布局的 `v-if` / `v-else-if` 链，H5 端生成一个 `<component :is>`。
+`<uni-layout>` 组件的 `name` prop 写布局名，也支持绑定变量，其它属性会透传给布局组件。
 
 ### 读取布局实例
 
-布局里用 `defineExpose` 抛出的东西，页面用 `useLayoutRef` 接住：
+布局里用 `defineExpose` 暴露方法，页面拿到实例就能直接调。
 
 ```vue
+<!-- src/layouts/default.vue -->
 <script setup lang="ts">
-import { useLayoutRef } from 'virtual:uni-layouts'
-
-const layout = useLayoutRef<{ toast: (message: string) => void }>()
-</script>
-```
-
-`useLayoutRef` 由虚拟模块 `virtual:uni-layouts` 提供，类型来自生成的声明文件（见下面的 `dts` 选项）。
-
-变量名随意，插件读页面的 `<script setup>`，把包裹标签渲染成 `ref="layout"`。泛型写你需要的接口：
-
-```vue
-<!-- 布局 -->
-<script setup lang="ts">
-function toast(message: string) {
+function toast(message: string): void {
   // ...
 }
 
@@ -303,19 +278,37 @@ defineExpose({ toast })
 </script>
 ```
 
-要注意的四件事：
+自 v0.3 起可以用 `useUniLayoutRef` 拿到实例。从虚拟模块 `virtual:uni-layouts` 导入，变量名随意，泛型写布局暴露的接口。
 
-- 值是布局挂载之后才有的，`onLoad` 里读到 `null`。用 `onMounted` / `onReady`，或者 `watch(layout, ...)`；模板里写 `layout?.toast('...')` 也可以，值到了会重新渲染。
-- 布局实例是每页一个。`layout: false` 的页面把 ref 加在自己写的 `<uni-layout>` 上，效果一样；如果那个标签上已经有 `ref`，以你写的为准。
-- `useLayoutRef` 要在页面 setup 顶层声明，包在函数或条件里不算 setup 绑定，插件识别不到。
-- Options API 没有等价的自动绑定。
+```vue
+<script setup lang="ts">
+import { useUniLayoutRef } from 'virtual:uni-layouts'
 
-旧写法仍然可用：script setup 里声明 `const uniLayout = ref()` 或 `shallowRef()`，插件会给标签加 `ref="uniLayout"`。
+const uniLayout = useUniLayoutRef<{ toast: (message: string) => void }>()
 
-没有组件上下文的纯 JS 模块（比如 `utils.js`）调不到布局实例，跨页的提示更适合放在模块里的状态上，让布局去渲染：
+function handleShowToast() {
+  uniLayout.value?.toast('hello')
+}
+</script>
+```
+
+插件读页面的 `<script setup>`，给包裹标签加一个和变量名一致的 ref，这里是 `ref="uniLayout"`。类型来自插件生成的 `uni-layouts.d.ts`，由 `dts` 选项控制（默认开启）。没生成时 `import` 会报找不到模块，构建不受影响，也可以自己声明，见[插件配置](#插件配置)。
+
+值是布局挂载之后才有的，`onLoad` 里读取会拿到 `null`。用 `onMounted` / `onReady`，或者 `watch(uniLayout, ...)`。模板里写 `uniLayout?.toast('...')` 也可以，模板会自动解包，有值了会重新渲染。
+
+v0.3 以前只能写 `const uniLayout = ref()`，插件在 setup 顶层找这个名字，给包裹标签加 `ref="uniLayout"`。该写法在 v0.3 仍然可用，但已经不再推荐，原因参考 [Issue #41](https://github.com/uni-helper/vite-plugin-uni-layouts/issues/41)。
+
+还有几个边界需要注意：
+
+- `useUniLayoutRef` 要写在页面 setup 顶层，包在函数或条件里不算 setup 绑定，插件无法识别。
+- `layout: false` 的页面不套包裹，ref 加在自己写的 `<uni-layout>` 上，效果一样。标签上已经有 `ref` 时以你写的为准。
+- Options API 不受支持，对应页面没有等价的自动绑定。
+- 小程序端动态布局切到不渲染布局的分支后，ref 里还是上一个实例，H5 会置空。要两端一致，见[注意](#注意)。
+
+没有组件上下文的纯 JS 模块（比如 `utils.js`）调不到布局实例，`useUniLayoutRef` 只能在页面或组件的 setup 里用。跨页提示放到模块里的状态上，让布局去渲染。
 
 ```ts
-// src/composables/toast.ts
+// src/utils/toast.ts
 import { ref } from 'vue'
 
 const messages = ref<string[]>([])
@@ -325,11 +318,50 @@ export function toast(message: string) {
 }
 ```
 
-布局渲染 `messages`，任何文件 import `toast` 都能用。
+布局渲染这份状态：
+
+```vue
+<!-- src/layouts/default.vue -->
+<script setup lang="ts">
+import { messages } from '@/utils/toast'
+</script>
+
+<template>
+  <view class="layout">
+    <view v-for="message in messages" :key="message" class="toast">
+      {{ message }}
+    </view>
+    <slot />
+  </view>
+</template>
+```
+
+页面直接 `import toast`，不需要经过布局实例：
+
+```vue
+<!-- src/pages/index/index.vue -->
+<script setup lang="ts">
+import { toast } from '@/utils/toast'
+
+function handleSave() {
+  toast('保存成功')
+}
+</script>
+
+<template>
+  <view>
+    <button @click="handleSave">
+      保存
+    </button>
+  </view>
+</template>
+```
+
+工具函数里同样可以直接调用，比如请求失败时 `toast('请求失败')`。
 
 ### page-meta
 
-`<page-meta>` 只有作为页面第一个节点才生效，被布局组件包住就失效了。插件包裹页面时会把它提出来，放到布局组件前面：
+`<page-meta>` 只有作为页面第一个节点才生效，被布局组件包住就会失效。自 v0.3 起，插件包裹页面时会把它提出来，放到布局组件前面。
 
 ```vue
 <script setup lang="ts">
@@ -346,58 +378,132 @@ const locked = ref(false)
 </template>
 ```
 
-上面的页面最终渲染成 `<page-meta>` 在外面、布局组件在里面，打开弹窗时用 `page-style` 锁住页面滚动。
+上面的页面最终渲染成 `<page-meta>` 在外面、布局组件在里面，打开弹窗时用 `page-style` 控制页面滚动。
 
-只处理页面模板顶层的 `<page-meta>`，写在其他节点里面的不受影响，也不会生效。`layout: false` 的页面模板不动，页面本身就是根节点，`<page-meta>` 写在第一个位置就行。
+插件只处理页面模板顶层的 `<page-meta>`，写在其它节点里面的不受影响，也不会生效。`layout: false` 的页面模板不需要处理，页面本身就是根节点，`<page-meta>` 写在第一个位置即可。
 
 ### 开发时热更新
 
-dev server 下改这些不用重启：
+改 pages.json 里某个页面的 `layout`，只有这一页重新编译，其他页面不动（0.3 起）。
 
-- 改 pages.json 里某个页面的 `layout`，只有这一页重新编译，其他页面不动。
-- 在布局目录里新增或删除 `.vue`，插件会重扫布局，页面也用上新布局；删掉的布局从页面模板里去掉。
+在布局目录里新增或删除 `.vue`，插件会重扫布局，页面用上新布局，删掉的布局从页面模板里去掉。
 
 `vite build --watch` 没有 dev server，pages.json 的变化只更新插件记下的页面列表，下一次构建生效。
 
-### 选项
-
-`UniLayouts(options)` 只有四个字段：`layout` 是默认布局名（默认 `default`），`layoutDir` 是布局目录（默认 `src/layouts`），`cwd` 是路径基准（默认 `process.cwd()`），`dts` 控制 `useLayoutRef` 的声明文件。
-
-`dts` 默认 `true`，写 `uni-layouts.d.ts`，位置跟 pages.json 同目录（有 `src` 时是 `src/uni-layouts.d.ts`）；传字符串表示相对 `cwd` 的路径；`false` 关掉。生成的声明可以直接提交进仓库。
-
-tsconfig 的 `include` 要覆盖 `*.d.ts`，例如 `src/**/*.d.ts`。只写了 `src/**/*.ts`、`src/**/*.vue` 的项目，文件写得出来但类型不生效，把生成路径加进 `include` 即可。
+## 插件配置
 
 ```ts
-UniLayouts({
-  dts: 'src/types/uni-layouts.d.ts',
+interface UserOptions {
+  /**
+   * 页面没有自己的 `layout` 时使用的布局名
+   * @default 'default'
+   */
+  layout?: string
+
+  /**
+   * 布局文件所在目录，相对 `cwd`
+   * @default 'src/layouts'
+   */
+  layoutDir?: string
+
+  /**
+   * 路径基准
+   * @default process.cwd()
+   */
+  cwd?: string
+
+  /**
+   * 生成 `useUniLayoutRef` 的类型声明
+   * 为 true 时写到 pages.json 同目录的 `uni-layouts.d.ts`
+   * 为 string 时作为自定义路径，相对 `cwd`
+   * @default true
+   * @since 0.3.0
+   */
+  dts?: boolean | string
+}
+```
+
+### 配置示例
+
+```ts
+// vite.config.mts
+import UniLayouts from '@uni-helper/vite-plugin-uni-layouts'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  plugins: [
+    UniLayouts({
+      layout: 'default',
+      layoutDir: 'src/layouts',
+      dts: 'src/types/uni-layouts.d.ts',
+    }),
+  ],
 })
 ```
 
-关掉之后 `useLayoutRef` 在编辑器里没有类型，`import` 会报错（构建不受影响），需要自己声明：
+### 声明文件
+
+`dts` 默认开启，启动 dev server 或构建时写 `uni-layouts.d.ts`，位置跟 pages.json 同目录（有 `src` 时是 `src/uni-layouts.d.ts`）。传字符串表示相对 `cwd` 的路径，`false` 关掉。生成的声明可以直接提交进仓库。
+
+tsconfig 的 `include` 要覆盖 `*.d.ts`，例如 `src/**/*.d.ts`。只写了 `src/**/*.ts`、`src/**/*.vue` 的项目，文件写得出来但类型不生效，把生成路径加进 `include` 即可。
+
+关掉之后 `useUniLayoutRef` 在编辑器里没有类型，`import` 会报错（构建不受影响），需要自己声明：
 
 ```ts
 declare module 'virtual:uni-layouts' {
-  export function useLayoutRef<T = Record<string, any>>(): import('vue').ShallowRef<T | null>
+  export function useUniLayoutRef<T = Record<string, any>>(): import('vue').ShallowRef<T | null>
 }
 ```
+
+### 完整类型定义
+
+请查看 [types.ts](https://github.com/uni-helper/vite-plugin-uni-layouts/blob/main/src/types.ts) 获取完整定义。
 
 ## 注意
 
 微信小程序下用了 `web-view` 的页面拿不到布局。插件改的是页面模板，`web-view` 的内容不在模板里。
 
-小程序端 `useLayoutRef` 拿到的实例不会自动清空：动态布局切到不渲染布局的分支（`v-else`，或者 `<uni-layout>` 上的 `v-if` 变成 false）之后，ref 里还是上一个实例。H5 会置空。要两端一致，跟着切换条件清一下：
+小程序端 `useUniLayoutRef` 拿到的实例不会自动清空：动态布局切到不渲染布局的分支（`v-else`，或者 `<uni-layout>` 上的 `v-if` 变成 false）之后，ref 里还是上一个实例。H5 会置空。要两端一致，跟着切换条件清一下：
 
 ```ts
 watch(layoutName, () => {
-  layout.value = null
+  uniLayout.value = null
 })
 ```
 
 布局重新挂载后 ref 会再次填上。
 
-以前写在布局包裹页面里的 `<page-meta>` 不生效，现在会被提到布局外面。升级后这些页面里原本无效的 `<page-meta>` 配置会开始起作用。
+## 常见问题
+
+### 页面没有套上布局，也没有警告
+
+先确认页面配置：`layout: false` 的页面本来就不套布局。再确认路径，pages.json 里的 `path` 要和文件位置对上，插件只处理 `.vue` 和 `.nvue`。
+
+用到 `web-view` 的页面拿不到布局，见[注意](#注意)。
+
+### 提示布局不存在
+
+页面写的布局名在布局目录里找不到，插件会打一条 warning，页面按没有布局渲染。核对页面配置里的 `layout` 和 [`layoutDir`](#插件配置) 选项，或者补上对应的布局文件。
+
+页面没写 `layout`、默认布局又不存在时，提示会说明用的是默认布局。补一个 `default.vue`，或者把 [`layout`](#插件配置) 选项改成已有的布局名。
+
+### useUniLayoutRef 一直是 null
+
+检查三件事：页面有没有被套布局（`layout: false` 的页面要在自己写的 `<uni-layout>` 上放 ref）、变量是不是写在 setup 顶层、读取的时机是不是太早（`onLoad` 拿不到，用 `onMounted` 或 `onReady`）。
+
+### 找不到模块 virtual:uni-layouts
+
+多半是 `dts` 关掉了，或者生成的 `uni-layouts.d.ts` 不在 tsconfig 的 `include` 里。怎么改见[声明文件](#声明文件)。
+
+### 页面里有 uni-layout 时编译报错
+
+页面写了 `<uni-layout>` 却还套着静态布局，uni-app 编译时会报 `Cannot read properties of undefined (reading 'type')`。给页面加上 `layout: false`，见[动态布局](#动态布局)。
 
 ## 破坏性更新
+
+### 0.3
+
+套布局的页面，`<page-meta>` 会被提到布局组件外面。以前写在布局包裹页面里的 `<page-meta>` 不生效，升级后这些配置会开始起作用。
 
 ### 0.2.0
 
