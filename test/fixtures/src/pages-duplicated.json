@@ -1,0 +1,18 @@
+{
+  "pages": [
+    // 同一个页面两条条目同时生效：旧版本读 pages.json 不认 #ifdef，两个平台
+    // 条目都会留下，页面因此可能套上别的平台的 layout
+    // #ifdef H5 || MP-WEIXIN
+    {
+      "path": "pages/index/index",
+      "layout": "kebabLayout"
+    },
+    // #endif
+    // #ifdef MP-WEIXIN
+    {
+      "path": "pages/index/index",
+      "layout": "camelLayout"
+    }
+    // #endif
+  ]
+}

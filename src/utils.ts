@@ -51,7 +51,7 @@ export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()): Pag
 
   const { pages = [], subPackages = [] } = parsePagesJson(pagesJsonRaw, process.env.UNI_PLATFORM || '')
 
-  return [
+  const loadedPages = [
     ...pages,
     // 分包页面的 path 相对分包目录，拼上 root 才是相对 src 的页面路径
     ...subPackages
@@ -63,6 +63,30 @@ export function loadPagesJson(path = 'src/pages.json', cwd = process.cwd()): Pag
       })
       .flat(),
   ]
+
+  warnDuplicatePages(loadedPages)
+  return loadedPages
+}
+
+/**
+ * 同一个页面路径在当前平台的条目里出现多次时 `getTarget` 只取第一条，页面可能
+ * 因此拿到别的平台的 layout。分包页面的条目最容易变成多条平台条目，所以这里
+ * 必须留下信号，否则页面只是静默地套上了错误的布局。
+ */
+function warnDuplicatePages(pages: Page[]): void {
+  const counts = new Map<string, number>()
+  for (const page of pages) {
+    const path = normalizePath(page.path)
+    counts.set(path, (counts.get(path) ?? 0) + 1)
+  }
+
+  const duplicated = [...counts]
+    .filter(([, count]) => count > 1)
+    .map(([path]) => `"${path}"`)
+  if (!duplicated.length)
+    return
+
+  console.warn(`[vite-plugin-uni-layouts] pages.json lists ${duplicated.join(', ')} more than once for this platform, the first entry decides the page layout; check the // #ifdef blocks around them`)
 }
 
 /**

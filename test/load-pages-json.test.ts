@@ -8,6 +8,25 @@ it('load pages', () => {
   expect(pagesJson).toMatchSnapshot()
 })
 
+describe('duplicated page entries', () => {
+  it('warns about duplicates and stays quiet without them', () => {
+    const cwd = resolve(__dirname, 'fixtures')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.stubEnv('UNI_PLATFORM', 'mp-weixin')
+
+    loadPagesJson('src/pages-duplicated.json', cwd)
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"pages/index/index"'))
+
+    // 同一个断言在无重复的 pages.json 上必须不成立，否则它永远不会失败
+    warn.mockClear()
+    loadPagesJson('src/pages.json', cwd)
+    expect(warn).not.toHaveBeenCalled()
+
+    warn.mockRestore()
+    vi.unstubAllEnvs()
+  })
+})
+
 describe('parsePagesJson', () => {
   it('ifdef APP-PLUS', () => {
     const jsonString = `{
