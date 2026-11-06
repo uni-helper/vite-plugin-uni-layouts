@@ -202,7 +202,7 @@ export function getTarget(
 const LEGACY_LAYOUT_REF_CALLEES = new Set(['ref', 'shallowRef'])
 
 /**
- * Local names that stand for the marker. A page that imports `useLayoutRef`
+ * Local names that stand for the marker. A page that imports `useUniLayoutRef`
  * from another package keeps its own meaning; a bare call with no import still
  * counts, because an auto-import plugin adds that import later.
  */
@@ -214,7 +214,7 @@ function collectMarkerNames(statements: ReturnType<typeof babelParse>['body']): 
       continue
     const fromRuntime = statement.source.value === virtualModuleId
     for (const specifier of statement.specifiers) {
-      if (specifier.type !== 'ImportSpecifier' || specifier.imported.type !== 'Identifier' || specifier.imported.name !== 'useLayoutRef')
+      if (specifier.type !== 'ImportSpecifier' || specifier.imported.type !== 'Identifier' || specifier.imported.name !== 'useUniLayoutRef')
         continue
       if (fromRuntime)
         names.add(specifier.local.name)
@@ -223,14 +223,14 @@ function collectMarkerNames(statements: ReturnType<typeof babelParse>['body']): 
     }
   }
   if (!names.size && !importedElsewhere)
-    names.add('useLayoutRef')
+    names.add('useUniLayoutRef')
   return names
 }
 
 /**
  * Name of the ref that receives the layout component instance.
  *
- * `useLayoutRef()` marks the ref explicitly, so its variable can be named
+ * `useUniLayoutRef()` marks the ref explicitly, so its variable can be named
  * anything and it wins when a page still carries the legacy declaration.
  * `ref()` / `shallowRef()` keep working under the legacy `uniLayout` name only.
  * Only top-level declarations are setup bindings, and the mini program compiler

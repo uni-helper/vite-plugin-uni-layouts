@@ -2,7 +2,7 @@
 
 exports[`bind a named layout ref 1`] = `
 "<script setup>
-const layout = useLayoutRef()
+const layout = useUniLayoutRef()
 </script>
 <template>
 <layout-default-uni ref="layout"><div>hello</div></layout-default-uni>
@@ -11,7 +11,7 @@ const layout = useLayoutRef()
 
 exports[`bind the layout ref on the dynamic layout 1`] = `
 "<script setup>
-const layout = useLayoutRef()
+const layout = useUniLayoutRef()
 </script>
 <template>
   <component ref="layout" is="layout-camelLayout-uni"><main></main></component>
@@ -47,7 +47,7 @@ exports[`keep page-meta in place when layout is disabled 1`] = `
 
 exports[`keep the ref written on the dynamic layout 1`] = `
 "<script setup>
-const layout = useLayoutRef()
+const layout = useUniLayoutRef()
 </script>
 <template>
   <component ref="myLayout" is="layout-camelLayout-uni"><main></main></component>

@@ -14,7 +14,7 @@ export interface Options {
    */
   cwd: string
   /**
-   * Write the declaration file for `useLayoutRef` of `virtual:uni-layouts`.
+   * Write the declaration file for `useUniLayoutRef` of `virtual:uni-layouts`.
    * A string is a path relative to `cwd`, `false` turns it off.
    * @default true, `uni-layouts.d.ts` next to pages.json
    */

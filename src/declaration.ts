@@ -23,7 +23,7 @@ export function getDeclaration(): string {
   return `${GENERATED_HEADER}
 
 declare module '${virtualModuleId}' {
-  export function useLayoutRef<T = Record<string, any>>(): import('vue').ShallowRef<T | null>
+  export function useUniLayoutRef<T = Record<string, any>>(): import('vue').ShallowRef<T | null>
 }
 `
 }

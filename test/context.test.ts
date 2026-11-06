@@ -1,5 +1,5 @@
 import { resolve } from 'node:path'
-import { expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { Context } from '../src/context'
 import { resolveOptions } from '../src/utils'
 
@@ -8,6 +8,10 @@ const ctx = new Context(
     cwd: resolve(__dirname, 'fixtures'),
   }),
 )
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 // const defaultLayout = ctx.layouts.find(l => l.name === 'default') as Layout
 
 it('use default layout', async () => {
@@ -71,7 +75,7 @@ it('keep page-meta in place when layout is disabled', async () => {
 it('bind a named layout ref', async () => {
   const code = await ctx.transform(
     `<script setup>
-const layout = useLayoutRef()
+const layout = useUniLayoutRef()
 </script>
 <template><div>hello</div></template>`,
     `${ctx.options.cwd}/src/pages/index/index.vue`,
@@ -103,7 +107,7 @@ const title = ref('hello')
 it('bind the layout ref on the dynamic layout', async () => {
   const code = await ctx.transform(
     `<script setup>
-const layout = useLayoutRef()
+const layout = useUniLayoutRef()
 </script>
 <template>
   <UniLayout name="camelLayout">
@@ -117,7 +121,7 @@ const layout = useLayoutRef()
 it('keep the ref written on the dynamic layout', async () => {
   const code = await ctx.transform(
     `<script setup>
-const layout = useLayoutRef()
+const layout = useUniLayoutRef()
 </script>
 <template>
   <UniLayout ref="myLayout" name="camelLayout">
@@ -127,4 +131,68 @@ const layout = useLayoutRef()
     `${ctx.options.cwd}/src/pages/index/disabled.vue`,
   )
   expect(code?.code).toMatchSnapshot()
+})
+
+it('warn about a wrong layout name', async () => {
+  const warnCtx = new Context(resolveOptions({
+    cwd: resolve(__dirname, 'fixtures'),
+  }))
+  warnCtx.pages = [
+    { path: 'pages/index/wrong-layout', layout: 'nope' },
+  ]
+
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const code = await warnCtx.transform(
+    `<template><div>hello</div></template>`,
+    `${warnCtx.options.cwd}/src/pages/index/wrong-layout.vue`,
+  )
+
+  // the page still renders, only without a wrapper
+  expect(code).toBeUndefined()
+  expect(warn).toHaveBeenCalledOnce()
+  expect(warn.mock.calls[0][0]).toContain('"nope"')
+  expect(warn.mock.calls[0][0]).toContain('pages/index/wrong-layout')
+})
+
+it('warn once when the layout directory has no layouts', async () => {
+  const emptyCtx = new Context(resolveOptions({
+    cwd: resolve(__dirname, 'fixtures'),
+    layoutDir: 'src/layouts/missing',
+  }))
+  emptyCtx.pages = [
+    { path: 'pages/index/one' },
+    { path: 'pages/index/two' },
+  ]
+
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  for (const name of ['one', 'two']) {
+    const code = await emptyCtx.transform(
+      `<template><div>${name}</div></template>`,
+      `${emptyCtx.options.cwd}/src/pages/index/${name}.vue`,
+    )
+    expect(code).toBeUndefined()
+  }
+
+  expect(warn).toHaveBeenCalledOnce()
+  expect(warn.mock.calls[0][0]).toContain('src/layouts/missing')
+})
+
+it('warn when a page falls back to a missing default layout', async () => {
+  const noDefaultCtx = new Context(resolveOptions({
+    cwd: resolve(__dirname, 'fixtures'),
+    layoutDir: 'src/layouts/the',
+  }))
+  noDefaultCtx.pages = [
+    { path: 'pages/index/index' },
+  ]
+
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const code = await noDefaultCtx.transform(
+    `<template><div>hello</div></template>`,
+    `${noDefaultCtx.options.cwd}/src/pages/index/index.vue`,
+  )
+
+  expect(code).toBeUndefined()
+  expect(warn).toHaveBeenCalledOnce()
+  expect(warn.mock.calls[0][0]).toContain('uses the default layout "default"')
 })

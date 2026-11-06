@@ -25,6 +25,8 @@ export class Context {
    */
   layoutDirPath: string
   private _server?: ViteDevServer
+  /** the "no layouts" warning is global, so it must not repeat per page */
+  private warnedNoLayouts = false
   constructor(options: ResolvedOptions) {
     this.options = options
     this.pages = []
@@ -95,9 +97,24 @@ export class Context {
       await invalidateAndReload(getSourceUrl(this.pageJsonPath, `${page.path}${ext}`), server)
   }
 
+  /**
+   * A wrong `layoutDir` or an empty directory leaves every page unwrapped.
+   * The condition is global, so warn once per scan instead of once per page.
+   */
+  private warnNoLayouts(): void {
+    if (this.layouts.length || this.warnedNoLayouts)
+      return
+    this.warnedNoLayouts = true
+    console.warn(`[vite-plugin-uni-layouts] no layout found in "${this.layoutDirPath}", pages render without layouts`)
+  }
+
   /** Rescan the layouts directory and reload every module that imports a layout. */
   async reloadLayouts(): Promise<void> {
     this.layouts = scanLayouts(this.layoutDirPath)
+    // the directory changed, so the next transform has to report a still empty
+    // one again
+    this.warnedNoLayouts = false
+    this.warnNoLayouts()
 
     const server = this._server
     if (!server)
@@ -128,8 +145,10 @@ export class Context {
     map: string
   } | undefined> {
     // no layouts
-    if (!this.layouts.length)
+    if (!this.layouts.length) {
+      this.warnNoLayouts()
       return
+    }
     // no pages
     if (!this.pages?.length)
       this.pages = loadPagesJson(this.pageJsonPath, this.options.cwd)
@@ -156,9 +175,19 @@ export class Context {
       if (!pageLayoutName)
         return
       pageLayout = this.layouts.find(l => l.name === (pageLayoutName as string))
-      // can not find layout
-      if (!pageLayout)
+      // a missing layout leaves the page unwrapped, which is silent otherwise
+      if (!pageLayout) {
+        // the name equals the `layout` option when the page has no layout of
+        // its own, and that is worth saying: the fix is adding the layout file
+        // or setting the option, not changing this page
+        const fallback = pageLayoutName === this.options.layout
+        console.warn(
+          fallback
+            ? `[vite-plugin-uni-layouts] page "${page.path}" uses the default layout "${pageLayoutName}", which does not exist, rendering the page without a layout`
+            : `[vite-plugin-uni-layouts] layout "${pageLayoutName}" of page "${page.path}" does not exist, rendering the page without a layout`,
+        )
         return
+      }
     }
     const disabled = typeof pageLayoutName === 'boolean' && !pageLayoutName
 

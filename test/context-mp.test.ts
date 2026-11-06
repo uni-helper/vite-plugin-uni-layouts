@@ -18,7 +18,7 @@ it('puts the layout ref on every branch of the mini program layout chain', async
   }))
   const code = await ctx.transform(
     `<script setup>
-const layout = useLayoutRef()
+const layout = useUniLayoutRef()
 </script>
 <template>
   <UniLayout :name="layoutName">
