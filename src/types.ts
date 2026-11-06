@@ -13,11 +13,20 @@ export interface Options {
    * @default process.cwd()
    */
   cwd: string
+  /**
+   * Write the declaration file for `useLayoutRef` of `virtual:uni-layouts`.
+   * A string is a path relative to `cwd`, `false` turns it off.
+   * @default true, `uni-layouts.d.ts` next to pages.json
+   */
+  dts: boolean | string
 }
 
 export interface UserOptions extends Partial<Options> {}
 
-export interface ResolvedOptions extends Options {}
+export interface ResolvedOptions extends Omit<Options, 'dts'> {
+  /** Absolute path, or `false` when the declaration is turned off. */
+  dts: string | false
+}
 
 export interface Layout {
   name: string

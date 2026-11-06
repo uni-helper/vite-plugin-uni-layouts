@@ -19,6 +19,11 @@
       "path": "pages/index/uni-layout",
       "type": "page",
       "layout": false
+    },
+    {
+      "path": "pages/index/layout-ref",
+      "type": "page",
+      "layout": "ref"
     }
   ],
   "subPackages": [

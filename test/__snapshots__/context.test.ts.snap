@@ -1,5 +1,33 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`bind a named layout ref 1`] = `
+"<script setup>
+const layout = useLayoutRef()
+</script>
+<template>
+<layout-default-uni ref="layout"><div>hello</div></layout-default-uni>
+</template>"
+`;
+
+exports[`bind the layout ref on the dynamic layout 1`] = `
+"<script setup>
+const layout = useLayoutRef()
+</script>
+<template>
+  <component ref="layout" is="layout-camelLayout-uni"><main></main></component>
+</template>"
+`;
+
+exports[`bind the legacy uniLayout ref 1`] = `
+"<script setup>
+import { ref } from 'vue'
+const uniLayout = ref()
+</script>
+<template>
+<layout-default-uni ref="uniLayout"><div>hello</div></layout-default-uni>
+</template>"
+`;
+
 exports[`hoist page-meta out of the layout 1`] = `
 "<template>
 <page-meta :page-style="pageStyle"></page-meta>
@@ -17,12 +45,31 @@ exports[`keep page-meta in place when layout is disabled 1`] = `
 </template>"
 `;
 
+exports[`keep the ref written on the dynamic layout 1`] = `
+"<script setup>
+const layout = useLayoutRef()
+</script>
+<template>
+  <component ref="myLayout" is="layout-camelLayout-uni"><main></main></component>
+</template>"
+`;
+
 exports[`leave a PageMeta component inside the layout 1`] = `
 "<template>
 <layout-default-uni >
   <PageMeta />
   <view>hello</view>
 </layout-default-uni>
+</template>"
+`;
+
+exports[`leave an ordinary template ref alone 1`] = `
+"<script setup>
+import { ref } from 'vue'
+const title = ref('hello')
+</script>
+<template>
+<layout-default-uni ><div>hello</div></layout-default-uni>
 </template>"
 `;
 

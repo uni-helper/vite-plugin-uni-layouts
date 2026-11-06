@@ -68,3 +68,63 @@ it('keep page-meta in place when layout is disabled', async () => {
   )
   expect(code?.code).toMatchSnapshot()
 })
+it('bind a named layout ref', async () => {
+  const code = await ctx.transform(
+    `<script setup>
+const layout = useLayoutRef()
+</script>
+<template><div>hello</div></template>`,
+    `${ctx.options.cwd}/src/pages/index/index.vue`,
+  )
+  expect(code?.code).toMatchSnapshot()
+})
+it('bind the legacy uniLayout ref', async () => {
+  const code = await ctx.transform(
+    `<script setup>
+import { ref } from 'vue'
+const uniLayout = ref()
+</script>
+<template><div>hello</div></template>`,
+    `${ctx.options.cwd}/src/pages/index/index.vue`,
+  )
+  expect(code?.code).toMatchSnapshot()
+})
+it('leave an ordinary template ref alone', async () => {
+  const code = await ctx.transform(
+    `<script setup>
+import { ref } from 'vue'
+const title = ref('hello')
+</script>
+<template><div>hello</div></template>`,
+    `${ctx.options.cwd}/src/pages/index/index.vue`,
+  )
+  expect(code?.code).toMatchSnapshot()
+})
+it('bind the layout ref on the dynamic layout', async () => {
+  const code = await ctx.transform(
+    `<script setup>
+const layout = useLayoutRef()
+</script>
+<template>
+  <UniLayout name="camelLayout">
+    <main></main>
+  </UniLayout>
+</template>`,
+    `${ctx.options.cwd}/src/pages/index/disabled.vue`,
+  )
+  expect(code?.code).toMatchSnapshot()
+})
+it('keep the ref written on the dynamic layout', async () => {
+  const code = await ctx.transform(
+    `<script setup>
+const layout = useLayoutRef()
+</script>
+<template>
+  <UniLayout ref="myLayout" name="camelLayout">
+    <main></main>
+  </UniLayout>
+</template>`,
+    `${ctx.options.cwd}/src/pages/index/disabled.vue`,
+  )
+  expect(code?.code).toMatchSnapshot()
+})

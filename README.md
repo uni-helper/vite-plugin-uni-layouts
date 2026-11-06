@@ -276,19 +276,56 @@ const name = ref('default')
 
 `name` 写布局名，也支持绑定变量；`<uni-layout>` 上的其他属性会透传给布局组件。小程序端展开成每个布局的 `v-if` / `v-else-if` 链，H5 端生成一个 `<component :is>`。
 
-### ref
+### 读取布局实例
 
-在页面的 script setup 里声明一个叫 `uniLayout` 的 ref，插件会给包裹页面的布局组件加上 `ref="uniLayout"`，拿到的就是布局组件实例：
+布局里用 `defineExpose` 抛出的东西，页面用 `useLayoutRef` 接住：
 
 ```vue
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useLayoutRef } from 'virtual:uni-layouts'
 
-const uniLayout = ref()
+const layout = useLayoutRef<{ toast: (message: string) => void }>()
 </script>
 ```
 
-Options API 里用 `this.$refs.uniLayout`。
+`useLayoutRef` 由虚拟模块 `virtual:uni-layouts` 提供，类型来自生成的声明文件（见下面的 `dts` 选项）。
+
+变量名随意，插件读页面的 `<script setup>`，把包裹标签渲染成 `ref="layout"`。泛型写你需要的接口：
+
+```vue
+<!-- 布局 -->
+<script setup lang="ts">
+function toast(message: string) {
+  // ...
+}
+
+defineExpose({ toast })
+</script>
+```
+
+要注意的四件事：
+
+- 值是布局挂载之后才有的，`onLoad` 里读到 `null`。用 `onMounted` / `onReady`，或者 `watch(layout, ...)`；模板里写 `layout?.toast('...')` 也可以，值到了会重新渲染。
+- 布局实例是每页一个。`layout: false` 的页面把 ref 加在自己写的 `<uni-layout>` 上，效果一样；如果那个标签上已经有 `ref`，以你写的为准。
+- `useLayoutRef` 要在页面 setup 顶层声明，包在函数或条件里不算 setup 绑定，插件识别不到。
+- Options API 没有等价的自动绑定。
+
+旧写法仍然可用：script setup 里声明 `const uniLayout = ref()` 或 `shallowRef()`，插件会给标签加 `ref="uniLayout"`。
+
+没有组件上下文的纯 JS 模块（比如 `utils.js`）调不到布局实例，跨页的提示更适合放在模块里的状态上，让布局去渲染：
+
+```ts
+// src/composables/toast.ts
+import { ref } from 'vue'
+
+const messages = ref<string[]>([])
+
+export function toast(message: string) {
+  messages.value.push(message)
+}
+```
+
+布局渲染 `messages`，任何文件 import `toast` 都能用。
 
 ### page-meta
 
@@ -324,11 +361,39 @@ dev server 下改这些不用重启：
 
 ### 选项
 
-`UniLayouts(options)` 只有三个字段：`layout` 是默认布局名（默认 `default`），`layoutDir` 是布局目录（默认 `src/layouts`），`cwd` 是路径基准（默认 `process.cwd()`）。
+`UniLayouts(options)` 只有四个字段：`layout` 是默认布局名（默认 `default`），`layoutDir` 是布局目录（默认 `src/layouts`），`cwd` 是路径基准（默认 `process.cwd()`），`dts` 控制 `useLayoutRef` 的声明文件。
+
+`dts` 默认 `true`，写 `uni-layouts.d.ts`，位置跟 pages.json 同目录（有 `src` 时是 `src/uni-layouts.d.ts`）；传字符串表示相对 `cwd` 的路径；`false` 关掉。生成的声明可以直接提交进仓库。
+
+tsconfig 的 `include` 要覆盖 `*.d.ts`，例如 `src/**/*.d.ts`。只写了 `src/**/*.ts`、`src/**/*.vue` 的项目，文件写得出来但类型不生效，把生成路径加进 `include` 即可。
+
+```ts
+UniLayouts({
+  dts: 'src/types/uni-layouts.d.ts',
+})
+```
+
+关掉之后 `useLayoutRef` 在编辑器里没有类型，`import` 会报错（构建不受影响），需要自己声明：
+
+```ts
+declare module 'virtual:uni-layouts' {
+  export function useLayoutRef<T = Record<string, any>>(): import('vue').ShallowRef<T | null>
+}
+```
 
 ## 注意
 
 微信小程序下用了 `web-view` 的页面拿不到布局。插件改的是页面模板，`web-view` 的内容不在模板里。
+
+小程序端 `useLayoutRef` 拿到的实例不会自动清空：动态布局切到不渲染布局的分支（`v-else`，或者 `<uni-layout>` 上的 `v-if` 变成 false）之后，ref 里还是上一个实例。H5 会置空。要两端一致，跟着切换条件清一下：
+
+```ts
+watch(layoutName, () => {
+  layout.value = null
+})
+```
+
+布局重新挂载后 ref 会再次填上。
 
 以前写在布局包裹页面里的 `<page-meta>` 不生效，现在会被提到布局外面。升级后这些页面里原本无效的 `<page-meta>` 配置会开始起作用。
 

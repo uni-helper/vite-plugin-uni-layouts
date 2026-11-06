@@ -16,3 +16,11 @@ it('resolve default options', () => {
   expect(path.isAbsolute(cwd)).toBe(true)
   expect({ layout, layoutDir }).toMatchSnapshot('default')
 })
+
+it('resolve the declaration file path', () => {
+  const cwd = path.resolve(__dirname, 'fixtures')
+
+  expect(resolveOptions({ cwd }).dts).toBe(path.resolve(cwd, 'src/uni-layouts.d.ts'))
+  expect(resolveOptions({ cwd, dts: 'src/types/layouts.d.ts' }).dts).toBe(path.resolve(cwd, 'src/types/layouts.d.ts'))
+  expect(resolveOptions({ cwd, dts: false }).dts).toBe(false)
+})

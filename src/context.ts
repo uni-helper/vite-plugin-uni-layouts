@@ -1,17 +1,15 @@
-import type { Node } from '@babel/types'
 import type { AttributeNode, DirectiveNode, ElementNode, SimpleExpressionNode } from '@vue/compiler-core'
 import type { FSWatcher } from 'chokidar'
 import type { ResolvedConfig, ViteDevServer } from 'vite'
 import type { Layout, Page, ResolvedOptions } from './types'
 import { resolve } from 'node:path'
 import { isMp } from '@uni-helper/uni-env'
-import { babelParse, walkAST } from 'ast-kit'
 import MagicString from 'magic-string'
 import { kebabCase } from 'scule'
 import { normalizePath } from 'vite'
-import { virtualModuleId } from './constant'
+import { runtimeModuleCode, virtualModuleId } from './constant'
 import { scanLayouts } from './scan'
-import { getPagesWithChangedLayout, getSourceUrl, getTarget, invalidateAndReload, isLayoutFile, loadPagesJson, parseSFC } from './utils'
+import { findLayoutRefName, getPagesWithChangedLayout, getSourceUrl, getTarget, invalidateAndReload, isLayoutFile, loadPagesJson, parseSFC } from './utils'
 
 export class Context {
   config!: ResolvedConfig
@@ -149,7 +147,6 @@ export class Context {
 
     let pageLayoutName: string | undefined | false = page.layout
     let pageLayout: Layout | undefined
-    const pageLayoutProps: string[] = []
 
     if (typeof pageLayoutName === 'boolean' && pageLayoutName)
       pageLayoutName = 'default'
@@ -168,24 +165,14 @@ export class Context {
     const sfc = await parseSFC(code)
     const ms = new MagicString(code)
     const setupCode = sfc.scriptSetup?.loc.source
-    // check has uniLayout ref
-    if (setupCode) {
-      const setupAst = babelParse(setupCode, sfc.scriptSetup?.lang)
-      walkAST<Node>(setupAst, {
-        enter(node) {
-          if (node.type === 'VariableDeclarator') {
-            const hasUniLayoutVar
-              = node.id.type === 'Identifier' && node.id.name === 'uniLayout'
-            const isRef
-              = node.init?.type === 'CallExpression'
-                && node.init.callee.type === 'Identifier'
-                && node.init.callee.name === 'ref'
-            if (hasUniLayoutVar && isRef)
-              pageLayoutProps.push('ref="uniLayout"')
-          }
-        },
-      })
-    }
+    // the page reads the layout instance through this ref, so the wrapper needs
+    // to carry it; the mini program resolves the name against setup bindings
+    const layoutRefName = setupCode
+      ? findLayoutRefName(setupCode, sfc.scriptSetup?.lang)
+      : undefined
+    const layoutRefProp = layoutRefName
+      ? `ref="${layoutRefName}"`
+      : ''
 
     if (disabled) {
       // find dynamic layout
@@ -194,7 +181,7 @@ export class Context {
       if (!uniLayoutNode)
         return
 
-      ms.overwrite(uniLayoutNode.loc.start.offset, uniLayoutNode.loc.end.offset, this.generateDynamicLayout(uniLayoutNode))
+      ms.overwrite(uniLayoutNode.loc.start.offset, uniLayoutNode.loc.end.offset, this.generateDynamicLayout(uniLayoutNode, layoutRefProp))
     }
     else {
       if (sfc.template?.loc.start.offset && sfc.template?.loc.end.offset) {
@@ -218,7 +205,7 @@ export class Context {
         const before = pageMetas
           ? `${pageMetas}\n`
           : ''
-        ms.overwrite(templateStart, sfc.template.loc.end.offset, `\n${before}<layout-${pageLayout?.kebabName}-uni ${pageLayoutProps.join(' ')}>${pageContent}</layout-${pageLayout?.kebabName}-uni>\n`)
+        ms.overwrite(templateStart, sfc.template.loc.end.offset, `\n${before}<layout-${pageLayout?.kebabName}-uni ${layoutRefProp}>${pageContent}</layout-${pageLayout?.kebabName}-uni>\n`)
       }
     }
 
@@ -238,7 +225,7 @@ export class Context {
   }
 
   async virtualModule(): Promise<string> {
-    const imports: string[] = []
+    const imports: string[] = ['import { shallowRef } from \'vue\'']
     const components: string[] = []
     const _exports = this.layouts.map((v) => {
       imports.push(
@@ -253,14 +240,14 @@ export class Context {
 export const layouts = {
   ${_exports.join('\n')}
 }
-export default {
+${runtimeModuleCode}export default {
   install(app) {
     ${components.join('\n')}
   }
 }`
   }
 
-  generateDynamicLayout(node: ElementNode): string {
+  generateDynamicLayout(node: ElementNode, layoutRefProp = ''): string {
     const staticLayoutNameBind = node.props.find(
       v => v.type === 6 && v.name === 'name' && v.value?.content,
     ) as AttributeNode
@@ -273,8 +260,17 @@ export default {
     if (!(staticLayoutNameBind || dynamicLayoutNameBind))
       console.warn('[vite-plugin-uni-layouts] Dynamic layout not found name bind')
 
+    // the page side ref lands on the tag that actually renders; the other
+    // branches of the mini program chain are never mounted. A ref written on
+    // `<uni-layout>` itself wins, so the page keeps its own access
+    const hasOwnRef = node.props.some(prop => (prop.type === 6 && prop.name === 'ref')
+      || (prop.type === 7 && prop.name === 'bind' && prop.arg?.type === 4 && prop.arg.content === 'ref'))
+    const refProp = hasOwnRef ? '' : layoutRefProp
+
     if (isMp) {
       const props: string[] = [...nodeProps]
+      if (refProp)
+        props.push(refProp)
       if (staticLayoutNameBind) {
         const layout = staticLayoutNameBind.value?.content
         return `<layout-${layout}-uni ${props.join(' ')}>${slotsSource}</layout-${layout}-uni>`
@@ -302,6 +298,8 @@ export default {
     }
     else {
       const props: string[] = [...nodeProps]
+      if (refProp)
+        props.push(refProp)
       if (staticLayoutNameBind)
         props.push(`is="layout-${staticLayoutNameBind.value?.content}-uni"`)
       else

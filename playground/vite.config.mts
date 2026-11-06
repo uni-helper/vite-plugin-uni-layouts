@@ -13,7 +13,9 @@ export default defineConfig({
       dts: 'src/uni-pages.d.ts',
       insertFinalNewline: true,
     }),
-    UniLayouts(),
+    UniLayouts({
+      dts: 'src/uni-layouts.d.ts',
+    }),
     Uni(),
   ],
 })

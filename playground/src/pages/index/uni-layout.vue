@@ -1,7 +1,19 @@
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { useLayoutRef } from 'virtual:uni-layouts'
+import { ref, watch } from 'vue'
+
+definePage({
+  layout: false,
+})
 
 const layoutName = ref<string | boolean>('default')
+const layout = useLayoutRef()
+
+// the mini program does not clear the ref when the layout disappears
+watch(layoutName, () => {
+  layout.value = null
+})
+
 function handleSwitch() {
   if (layoutName.value === 'default') {
     layoutName.value = 'posts'
@@ -13,16 +25,13 @@ function handleSwitch() {
     layoutName.value = 'default'
   }
 }
-
-definePage({
-  layout: false,
-})
 </script>
 
 <template>
   <button @click="handleSwitch">
     switch
   </button>
+  <view>layout: {{ layout ? 'mounted' : 'none' }}</view>
   <uni-layout :name="layoutName">
     <template #header>
       uni-layout header

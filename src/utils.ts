@@ -5,8 +5,10 @@ import { existsSync, readFileSync } from 'node:fs'
 import path, { dirname, join, relative, resolve, sep } from 'node:path'
 import process from 'node:process'
 import { parse as VueParser } from '@vue/compiler-sfc'
+import { babelParse } from 'ast-kit'
 import { parse as jsonParse } from 'jsonc-parser'
 import { normalizePath } from 'vite'
+import { virtualModuleId } from './constant'
 
 function slash(str: string): string {
   return str.replace(/\\|\//g, sep)
@@ -19,11 +21,26 @@ export function getPageJsonPath(cwd = process.cwd()): 'src/pages.json' | 'pages.
 }
 
 export function resolveOptions(userOptions: UserOptions = {}): ResolvedOptions {
-  return {
+  const { dts = true, ...rest } = userOptions
+  const options = {
     layout: 'default',
     layoutDir: 'src/layouts',
     cwd: process.cwd(),
-    ...userOptions,
+    ...rest,
+  }
+
+  let dtsPath: string | false = false
+  if (dts) {
+    // the declaration sits next to pages.json by default, which is already
+    // inside the source tree the project's tsconfig includes
+    dtsPath = resolve(options.cwd, typeof dts === 'string'
+      ? dts
+      : join(dirname(getPageJsonPath(options.cwd)), 'uni-layouts.d.ts'))
+  }
+
+  return {
+    ...options,
+    dts: dtsPath,
   }
 }
 
@@ -176,6 +193,69 @@ export function getTarget(
     } as Required<Page>
   }
   return false
+}
+
+/**
+ * Call expressions that only count as a layout ref under the legacy name.
+ * Any other name is an ordinary template ref the page uses for itself.
+ */
+const LEGACY_LAYOUT_REF_CALLEES = new Set(['ref', 'shallowRef'])
+
+/**
+ * Local names that stand for the marker. A page that imports `useLayoutRef`
+ * from another package keeps its own meaning; a bare call with no import still
+ * counts, because an auto-import plugin adds that import later.
+ */
+function collectMarkerNames(statements: ReturnType<typeof babelParse>['body']): Set<string> {
+  const names = new Set<string>()
+  let importedElsewhere = false
+  for (const statement of statements) {
+    if (statement.type !== 'ImportDeclaration')
+      continue
+    const fromRuntime = statement.source.value === virtualModuleId
+    for (const specifier of statement.specifiers) {
+      if (specifier.type !== 'ImportSpecifier' || specifier.imported.type !== 'Identifier' || specifier.imported.name !== 'useLayoutRef')
+        continue
+      if (fromRuntime)
+        names.add(specifier.local.name)
+      else
+        importedElsewhere = true
+    }
+  }
+  if (!names.size && !importedElsewhere)
+    names.add('useLayoutRef')
+  return names
+}
+
+/**
+ * Name of the ref that receives the layout component instance.
+ *
+ * `useLayoutRef()` marks the ref explicitly, so its variable can be named
+ * anything and it wins when a page still carries the legacy declaration.
+ * `ref()` / `shallowRef()` keep working under the legacy `uniLayout` name only.
+ * Only top-level declarations are setup bindings, and the mini program compiler
+ * resolves a template ref through that binding alone.
+ */
+export function findLayoutRefName(code: string, lang?: string): string | undefined {
+  const ast = babelParse(code, lang)
+  const markerNames = collectMarkerNames(ast.body)
+  let legacyName: string | undefined
+  for (const statement of ast.body) {
+    if (statement.type !== 'VariableDeclaration')
+      continue
+    for (const declarator of statement.declarations) {
+      if (declarator.id.type !== 'Identifier')
+        continue
+      const init = declarator.init
+      if (init?.type !== 'CallExpression' || init.callee.type !== 'Identifier')
+        continue
+      if (markerNames.has(init.callee.name))
+        return declarator.id.name
+      if (declarator.id.name === 'uniLayout' && LEGACY_LAYOUT_REF_CALLEES.has(init.callee.name))
+        legacyName = declarator.id.name
+    }
+  }
+  return legacyName
 }
 
 export async function parseSFC(code: string): Promise<SFCDescriptor> {
