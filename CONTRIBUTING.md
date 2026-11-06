@@ -20,7 +20,7 @@
 │   ├── utils.ts          # pages.json 读取、页面匹配、标记 ref 识别
 │   ├── types.ts          # 插件选项与布局元数据类型
 │   ├── declaration.ts    # 生成 uni-layouts.d.ts 声明文件
-│   └── constant.ts       # 虚拟模块 ID 与 useUniLayoutRef 的代码片段
+│   └── constant.ts       # 虚拟模块 ID 与 useUhUniLayoutRef 的代码片段
 ├── test/                 # vitest 测试（部分用快照断言）
 │   └── fixtures/         # 测试用布局与 pages.json
 ├── playground/           # 示例 uni-app 应用（workspace 成员，用于本地调试）
@@ -76,7 +76,7 @@ playground 通过 `workspace:*` 引用本插件，用 `@uni-helper/vite-plugin-u
 
 ```text
 test/
-├── context.test.ts                       模板改写、ref 注入、布局名警告
+├── context.test.ts                       模板改写、ref 注入、布局名与标签位置警告
 ├── context-mp.test.ts                    小程序分支的 ref 注入
 ├── declaration.test.ts                   声明文件内容与写入规则
 ├── find-layout-ref-name.test.ts          标记 ref 的识别

@@ -125,11 +125,11 @@ export default defineConfig({
 | `src/layouts/blog/posts.vue` | `blogPosts` |
 | `src/layouts/the/nesting/layout.vue` | `theNestingLayout` |
 
-自 v0.3 起，没有布局文件夹（`layoutDir` 写错、目录为空）时插件会警告一次，所有页面都不套布局。页面写的布局名不存在时也会警告，只有这一页不套布局。
+自 v0.3 起，没有布局目录（`layoutDir` 写错、目录为空）时插件会警告一次，所有页面都不套布局。页面写的布局名不存在时也会警告，只有这一页不套布局。
 
 要指定布局文件所在目录，需要调整 `layoutDir` 选项，详见[插件配置](#插件配置)。
 
-要使用具名插槽，必须禁用默认布局并使用 `<uni-layout>` 组件，详见[动态布局](#动态布局)。
+要使用具名插槽，必须禁用默认布局并使用 `<uh-uni-layout>` 组件，详见[动态布局](#动态布局)。
 
 ### 指定布局
 
@@ -205,7 +205,7 @@ definePage(({ define }) =>
 
 ### 动态布局
 
-页面写了 `layout: false` 之后，插件不再自动包裹页面。想套布局或使用具名插槽，用内置组件 `<uni-layout>` 指定已有布局；不需要布局的页面直接写内容就行。
+页面写了 `layout: false` 之后，插件不再自动包裹页面。想套布局或使用具名插槽，用内置组件 `<uh-uni-layout>` 指定已有布局；不需要布局的页面直接写内容就行。
 
 布局示例如下：
 
@@ -249,7 +249,7 @@ const name = ref('namedSlots')
 
 <template>
   <!-- 指定使用 src/layouts/named-slots.vue 作为页面布局 -->
-  <uni-layout :name="name">
+  <uh-uni-layout :name="name">
     <template #header>
       header
     </template>
@@ -257,11 +257,11 @@ const name = ref('namedSlots')
     <template #footer>
       footer
     </template>
-  </uni-layout>
+  </uh-uni-layout>
 </template>
 ```
 
-`<uni-layout>` 组件的 `name` prop 写布局名，也支持绑定变量，其它属性会透传给布局组件。
+`<uh-uni-layout>` 组件的 `name` prop 写布局名，也支持绑定变量，其它属性会透传给布局组件。
 
 ### 读取布局实例
 
@@ -278,13 +278,13 @@ defineExpose({ toast })
 </script>
 ```
 
-自 v0.3 起可以用 `useUniLayoutRef` 拿到实例。从虚拟模块 `virtual:uni-layouts` 导入，变量名随意，泛型写布局暴露的接口。
+自 v0.3 起可以用 `useUhUniLayoutRef` 拿到实例。从虚拟模块 `virtual:uni-layouts` 导入，变量名随意，泛型写布局暴露的接口。
 
 ```vue
 <script setup lang="ts">
-import { useUniLayoutRef } from 'virtual:uni-layouts'
+import { useUhUniLayoutRef } from 'virtual:uni-layouts'
 
-const uniLayout = useUniLayoutRef<{ toast: (message: string) => void }>()
+const uniLayout = useUhUniLayoutRef<{ toast: (message: string) => void }>()
 
 function handleShowToast() {
   uniLayout.value?.toast('hello')
@@ -300,12 +300,12 @@ v0.3 以前只能写 `const uniLayout = ref()`，插件在 setup 顶层找这个
 
 还有几个边界需要注意：
 
-- `useUniLayoutRef` 要写在页面 setup 顶层，包在函数或条件里不算 setup 绑定，插件无法识别。
-- `layout: false` 的页面不套包裹，ref 加在自己写的 `<uni-layout>` 上，效果一样。标签上已经有 `ref` 时以你写的为准。
+- `useUhUniLayoutRef` 要写在页面 setup 顶层，包在函数或条件里不算 setup 绑定，插件无法识别。
+- `layout: false` 的页面不套包裹，ref 加在自己写的 `<uh-uni-layout>` 上，效果一样。标签上已经有 `ref` 时以你写的为准。
 - Options API 不受支持，对应页面没有等价的自动绑定。
 - 小程序端动态布局切到不渲染布局的分支后，ref 里还是上一个实例，H5 会置空。要两端一致，见[注意](#注意)。
 
-没有组件上下文的纯 JS 模块（比如 `utils.js`）调不到布局实例，`useUniLayoutRef` 只能在页面或组件的 setup 里用。跨页提示放到模块里的状态上，让布局去渲染。
+没有组件上下文的纯 JS 模块（比如 `utils.js`）调不到布局实例，`useUhUniLayoutRef` 只能在页面或组件的 setup 里用。跨页提示放到模块里的状态上，让布局去渲染。
 
 ```ts
 // src/utils/toast.ts
@@ -413,7 +413,7 @@ interface UserOptions {
   cwd?: string
 
   /**
-   * 生成 `useUniLayoutRef` 的类型声明
+   * 生成 `useUhUniLayoutRef` 的类型声明
    * 为 true 时写到 pages.json 同目录的 `uni-layouts.d.ts`
    * 为 string 时作为自定义路径，相对 `cwd`
    * @default true
@@ -447,11 +447,11 @@ export default defineConfig({
 
 tsconfig 的 `include` 要覆盖 `*.d.ts`，例如 `src/**/*.d.ts`。只写了 `src/**/*.ts`、`src/**/*.vue` 的项目，文件写得出来但类型不生效，把生成路径加进 `include` 即可。
 
-关掉之后 `useUniLayoutRef` 在编辑器里没有类型，`import` 会报错（构建不受影响），需要自己声明：
+关掉之后 `useUhUniLayoutRef` 在编辑器里没有类型，`import` 会报错（构建不受影响），需要自己声明：
 
 ```ts
 declare module 'virtual:uni-layouts' {
-  export function useUniLayoutRef<T = Record<string, any>>(): import('vue').ShallowRef<T | null>
+  export function useUhUniLayoutRef<T = Record<string, any>>(): import('vue').ShallowRef<T | null>
 }
 ```
 
@@ -463,7 +463,7 @@ declare module 'virtual:uni-layouts' {
 
 微信小程序下用了 `web-view` 的页面拿不到布局。插件改的是页面模板，`web-view` 的内容不在模板里。
 
-小程序端 `useUniLayoutRef` 拿到的实例不会自动清空：动态布局切到不渲染布局的分支（`v-else`，或者 `<uni-layout>` 上的 `v-if` 变成 false）之后，ref 里还是上一个实例。H5 会置空。要两端一致，跟着切换条件清一下：
+小程序端 `useUhUniLayoutRef` 拿到的实例不会自动清空：动态布局切到不渲染布局的分支（`v-else`，或者 `<uh-uni-layout>` 上的 `v-if` 变成 false）之后，ref 里还是上一个实例。H5 会置空。要两端一致，跟着切换条件清一下：
 
 ```ts
 watch(layoutName, () => {
@@ -487,21 +487,29 @@ watch(layoutName, () => {
 
 页面没写 `layout`、默认布局又不存在时，提示会说明用的是默认布局。补一个 `default.vue`，或者把 [`layout`](#插件配置) 选项改成已有的布局名。
 
-### useUniLayoutRef 一直是 null
+### useUhUniLayoutRef 一直是 null
 
-检查三件事：页面有没有被套布局（`layout: false` 的页面要在自己写的 `<uni-layout>` 上放 ref）、变量是不是写在 setup 顶层、读取的时机是不是太早（`onLoad` 拿不到，用 `onMounted` 或 `onReady`）。
+检查三件事：页面有没有被套布局（`layout: false` 的页面要在自己写的 `<uh-uni-layout>` 上放 ref）、变量是不是写在 setup 顶层、读取的时机是不是太早（`onLoad` 拿不到，用 `onMounted` 或 `onReady`）。
 
 ### 找不到模块 virtual:uni-layouts
 
 多半是 `dts` 关掉了，或者生成的 `uni-layouts.d.ts` 不在 tsconfig 的 `include` 里。怎么改见[声明文件](#声明文件)。
 
+### 动态布局不生效
+
+`<uh-uni-layout>` 只有写在 `layout: false` 的页面模板顶层才会被插件改写。页面仍然套着静态布局时，标签原样留在模板里，Vue 会提示找不到组件，布局不渲染。给页面加上 `layout: false`，见[动态布局](#动态布局)。
+
+标签包在 `<view>` 之类的元素里也不会被改写，插件对这两种情况都会 warning。
+
 ### 页面里有 uni-layout 时编译报错
 
-页面写了 `<uni-layout>` 却还套着静态布局，uni-app 编译时会报 `Cannot read properties of undefined (reading 'type')`。给页面加上 `layout: false`，见[动态布局](#动态布局)。
+v0.3 起标签改名为 `<uh-uni-layout>`。旧名字 `uni-layout` 是 uni-app H5 的内置自定义元素，编译器会把它当普通元素，具名插槽的 `<template>` 永远拿不到 codegen，于是 H5 报 `Cannot read properties of undefined (reading 'type')`（dev 下是 `Codegen node is missing for element/if/for node`）。把标签改成 `<uh-uni-layout>` 即可，插件遇到旧标签会 warning 提醒。
 
 ## 破坏性更新
 
 ### 0.3
+
+动态布局标签 `<uni-layout>` 改名为 `<uh-uni-layout>`，`useUniLayoutRef` 改名为 `useUhUniLayoutRef`，旧名字不再被识别。旧标签名是 uni-app H5 的内置自定义元素，留在页面里会让 H5 编译失败；插件发现旧标签时会 warning 提醒改名。`virtual:uni-layouts`、生成的 `uni-layouts.d.ts`、注册的 `layout-{name}-uni` 组件名和旧的 `const uniLayout = ref()` 写法都没变。
 
 套布局的页面，`<page-meta>` 会被提到布局组件外面。以前写在布局包裹页面里的 `<page-meta>` 不生效，升级后这些配置会开始起作用。
 
