@@ -175,9 +175,6 @@ catalogs:
     '@antfu/eslint-config':
       specifier: ^10.0.0
       version: 10.0.0
-    '@babel/types':
-      specifier: ^8.1.0
-      version: 8.1.0
     '@dcloudio/types':
       specifier: ^3.4.32
       version: 3.4.32
@@ -254,7 +251,7 @@ catalogs:
       specifier: ^12.3.0
       version: 12.3.0
     chokidar:
-      specifier: 3.6.0
+      specifier: ^3.6.0
       version: 3.6.0
     eslint:
       specifier: ^10.14.0
@@ -299,9 +296,6 @@ importers:
 
   .:
     dependencies:
-      '@babel/types':
-        specifier: 'catalog:'
-        version: 8.1.0
       '@uni-helper/uni-env':
         specifier: 'catalog:'
         version: 0.3.3
