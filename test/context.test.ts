@@ -220,3 +220,30 @@ it('warn about the renamed uni-layout tag', async () => {
   expect(current?.code).toContain('<component')
   expect(warn).not.toHaveBeenCalled()
 })
+
+it('warn about the layout tag on a statically laid out page', async () => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const code = await ctx.transform(
+    `<template><uh-uni-layout name="camelLayout"><main></main></uh-uni-layout></template>`,
+    `${ctx.options.cwd}/src/pages/index/index.vue`,
+  )
+
+  // the page keeps its wrapper, so the tag stays in the template and renders
+  // nothing; only the warning says so
+  expect(code?.code).toContain('<layout-default-uni')
+  expect(code?.code).toContain('<uh-uni-layout')
+  expect(warn).toHaveBeenCalledOnce()
+  expect(warn.mock.calls[0][0]).toContain('"layout": false')
+})
+
+it('warn about a nested layout tag', async () => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const code = await ctx.transform(
+    `<template><view><uh-uni-layout name="camelLayout"><main></main></uh-uni-layout></view></template>`,
+    `${ctx.options.cwd}/src/pages/index/disabled.vue`,
+  )
+
+  expect(code).toBeUndefined()
+  expect(warn).toHaveBeenCalledOnce()
+  expect(warn.mock.calls[0][0]).toContain('directly under <template>')
+})

@@ -1,4 +1,4 @@
-import type { AttributeNode, DirectiveNode, ElementNode, SimpleExpressionNode } from '@vue/compiler-core'
+import type { AttributeNode, DirectiveNode, ElementNode, SimpleExpressionNode, TemplateChildNode } from '@vue/compiler-core'
 import type { FSWatcher } from 'chokidar'
 import type { ResolvedConfig, ViteDevServer } from 'vite'
 import type { Layout, Page, ResolvedOptions } from './types'
@@ -10,6 +10,22 @@ import { normalizePath } from 'vite'
 import { runtimeModuleCode, virtualModuleId } from './constant'
 import { scanLayouts } from './scan'
 import { findLayoutRefName, getPagesWithChangedLayout, getSourceUrl, getTarget, invalidateAndReload, isLayoutFile, loadPagesJson, parseSFC } from './utils'
+
+/**
+ * Finds `<uh-uni-layout>` at any depth. The transform rewrites only a direct
+ * child of `<template>`, so a hit anywhere deeper is a tag that renders nothing.
+ */
+function findLayoutTag(children: TemplateChildNode[]): ElementNode | undefined {
+  for (const child of children) {
+    if (child.type !== 1)
+      continue
+    if (kebabCase(child.tag) === 'uh-uni-layout')
+      return child
+    const nested = findLayoutTag(child.children)
+    if (nested)
+      return nested
+  }
+}
 
 export class Context {
   config!: ResolvedConfig
@@ -213,6 +229,15 @@ export class Context {
 
     if (templateChildren.some(v => v.type === 1 && kebabCase(v.tag) === 'uni-layout')) {
       console.warn(`[vite-plugin-uni-layouts] page "${page.path}" still uses <uni-layout>, which was renamed to <uh-uni-layout>`)
+    }
+    else if (dynamicLayoutNode && !disabled) {
+      // the page keeps its static layout, so the tag renders nothing on top
+      console.warn(`[vite-plugin-uni-layouts] page "${page.path}" uses <uh-uni-layout> but has no "layout": false, so it is wrapped in its layout and the tag renders nothing`)
+    }
+    else if (!dynamicLayoutNode && findLayoutTag(templateChildren)) {
+      // only a direct child of `<template>` is rewritten; anywhere deeper the
+      // tag stays in the template and renders nothing
+      console.warn(`[vite-plugin-uni-layouts] page "${page.path}" has <uh-uni-layout> inside other elements, where it is never rewritten: move it directly under <template>`)
     }
 
     if (disabled) {
