@@ -5,6 +5,14 @@ import { camelCase, kebabCase, pascalCase, splitByCase } from 'scule'
 import { globSync } from 'tinyglobby'
 import { normalizePath } from 'vite'
 
+/**
+ * Names derived from a file name end up in generated code: `Layout_<Pascal>_Uni`
+ * as an identifier and `layout-<kebab>-uni` as a tag. A quote or a backslash in
+ * the file name breaks both, so such a file is skipped with a warning instead of
+ * producing code that cannot compile.
+ */
+const VALID_NAME = /^[\p{L}\p{N}_$]+$/u
+
 export function scanLayouts(dir = 'src/layouts', cwd = process.cwd()): Layout[] {
   dir = resolve(cwd, dir)
   const files = globSync('**/*.vue', {
@@ -40,6 +48,10 @@ export function scanLayouts(dir = 'src/layouts', cwd = process.cwd()): Layout[] 
       = pascalCase(componentNameParts) + pascalCase(fileNameParts)
     const camelName = camelCase(pascalName)
     const kebabName = kebabCase(pascalName)
+    if (!VALID_NAME.test(pascalName)) {
+      console.warn(`[vite-plugin-uni-layouts] "${filePath}" derives the layout name "${camelName}", which cannot be used in generated code, skipping it`)
+      continue
+    }
     layouts.push({
       name: camelName,
       path: filePath,
