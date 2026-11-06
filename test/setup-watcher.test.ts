@@ -54,7 +54,9 @@ function createWatcher() {
 }
 
 function createContext() {
-  return new Context(resolveOptions({ cwd }))
+  // a layout event rescans and rewrites the declaration; the file has nowhere
+  // to go in the fixtures, and the write path has its own test
+  return new Context(resolveOptions({ cwd, dts: false }))
 }
 
 it('reloads pages.json without a dev server', async () => {

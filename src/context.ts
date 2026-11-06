@@ -8,6 +8,7 @@ import MagicString from 'magic-string'
 import { kebabCase } from 'scule'
 import { normalizePath } from 'vite'
 import { runtimeModuleCode, virtualModuleId } from './constant'
+import { writeDeclaration } from './declaration'
 import { scanLayouts } from './scan'
 import { findLayoutRefName, getPagesWithChangedLayout, getSourceUrl, getTarget, invalidateAndReload, isLayoutFile, loadPagesJson, parseSFC } from './utils'
 
@@ -43,6 +44,12 @@ export class Context {
   private _server?: ViteDevServer
   /** the "no layouts" warning is global, so it must not repeat per page */
   private warnedNoLayouts = false
+  /**
+   * Declaration writes run one after another. A burst of layout events (a git
+   * checkout, a rename) starts several writes at once and they share one
+   * temporary file, so a parallel write would fail its rename.
+   */
+  private declarationWrite: Promise<void> = Promise.resolve()
   constructor(options: ResolvedOptions) {
     this.options = options
     this.pages = []
@@ -124,6 +131,29 @@ export class Context {
     console.warn(`[vite-plugin-uni-layouts] no layout found in "${this.layoutDirPath}", pages render without layouts`)
   }
 
+  /**
+   * Write the declaration file with the current layout names. A layout added or
+   * removed changes `LayoutKey`, so the file follows every rescan. A failure
+   * only costs editor types, so it must not stop the build or the dev server.
+   */
+  writeDeclarationFile(): Promise<void> {
+    const filePath = this.options.dts
+    if (!filePath)
+      return this.declarationWrite
+
+    const names = this.layouts.map(layout => layout.name)
+    this.declarationWrite = this.declarationWrite.then(async () => {
+      try {
+        await writeDeclaration(filePath, names)
+      }
+      catch (error) {
+        // the path is in the message to make it actionable
+        console.warn(`[vite-plugin-uni-layouts] failed to write ${filePath}: ${String(error)}`)
+      }
+    })
+    return this.declarationWrite
+  }
+
   /** Rescan the layouts directory and reload every module that imports a layout. */
   async reloadLayouts(): Promise<void> {
     this.layouts = scanLayouts(this.layoutDirPath)
@@ -131,6 +161,7 @@ export class Context {
     // one again
     this.warnedNoLayouts = false
     this.warnNoLayouts()
+    await this.writeDeclarationFile()
 
     const server = this._server
     if (!server)

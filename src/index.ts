@@ -4,7 +4,6 @@ import chokidar from 'chokidar'
 import { createFilter } from 'vite'
 import { virtualModuleId } from './constant'
 import { Context } from './context'
-import { writeDeclaration } from './declaration'
 import { getPageJsonPath, resolveOptions } from './utils'
 
 export function VitePluginUniLayouts(userOptions: UserOptions = {}): Plugin {
@@ -17,20 +16,13 @@ export function VitePluginUniLayouts(userOptions: UserOptions = {}): Plugin {
     enforce: 'pre',
     configResolved(config) {
       ctx.config = config
+      // build watch has no dev server watcher, and a layout added while it runs
+      // still changes the declaration and the virtual module
       if (config.build.watch)
-        ctx.setupWatcher(chokidar.watch(['src/pages.json', 'pages.json']))
+        ctx.setupWatcher(chokidar.watch(['src/pages.json', 'pages.json', ctx.layoutDirPath]))
     },
     async buildStart() {
-      if (!options.dts)
-        return
-      try {
-        await writeDeclaration(options.dts)
-      }
-      catch (error) {
-        // the declaration only feeds editor types, so a failure must not stop
-        // the build; the path is in the message to make it actionable
-        console.warn(`[vite-plugin-uni-layouts] failed to write ${options.dts}: ${String(error)}`)
-      }
+      await ctx.writeDeclarationFile()
     },
     configureServer(server) {
       ctx.setupViteServer(server)
