@@ -156,6 +156,8 @@ export default defineConfig({
 }
 ```
 
+`layout` 也能写布尔值：`false` 关闭布局，`true` 等同于写 `"default"`（不读 `layout` 选项）。
+
 如果使用 `@uni-helper/vite-plugin-uni-pages`，可以写入 `definePage` 宏，构建时宏会被删掉并自动更新 `pages.json`。
 
 ```vue
@@ -238,13 +240,14 @@ definePage(({ define }) =>
 
 ```vue
 <script setup lang="ts">
+import type { LayoutKey } from 'virtual:uni-layouts'
 import { ref } from 'vue'
 
 definePage({
   layout: false, // 禁用默认布局
 })
 
-const name = ref('namedSlots')
+const name = ref<LayoutKey>('namedSlots')
 </script>
 
 <template>
@@ -261,7 +264,7 @@ const name = ref('namedSlots')
 </template>
 ```
 
-`<uh-uni-layout>` 组件的 `name` prop 写布局名，也支持绑定变量，其它属性会透传给布局组件。
+`<uh-uni-layout>` 组件的 `name` prop 写布局名，也支持绑定变量，其它属性会透传给布局组件。`LayoutKey` 是扫描到的布局名的联合类型，来自生成的声明文件，写错名字编辑器会报错。
 
 ### 读取布局实例
 
@@ -413,7 +416,7 @@ interface UserOptions {
   cwd?: string
 
   /**
-   * 生成 `useUhUniLayoutRef` 的类型声明
+   * 生成 `useUhUniLayoutRef` 和布局名的类型声明
    * 为 true 时写到 pages.json 同目录的 `uni-layouts.d.ts`
    * 为 string 时作为自定义路径，相对 `cwd`
    * @default true
@@ -444,6 +447,17 @@ export default defineConfig({
 ### 声明文件
 
 `dts` 默认开启，启动 dev server 或构建时写 `uni-layouts.d.ts`，位置跟 pages.json 同目录（有 `src` 时是 `src/uni-layouts.d.ts`）。传字符串表示相对 `cwd` 的路径，`false` 关掉。生成的声明可以直接提交进仓库。
+
+声明里有两部分：
+
+- `virtual:uni-layouts` 的 `useUhUniLayoutRef` 类型，以及扫描到的布局名导出的 `LayoutKey` 联合类型。
+- 布局名登记表 `UniHelperUniLayouts`。`@uni-helper/uni-pages-types` 用它给页面配置的 `layout` 字段收窄类型，所以 `definePage({ layout: '写错的名字' })` 和 `pages.config` 里的 `layout` 都会报错。升级到带这个登记口的 `@uni-helper/uni-pages-types`（跟着 `@uni-helper/vite-plugin-uni-pages` 一起装）才生效，旧版本不会报错，`layout` 仍然接受任意字符串。
+
+布局文件增删或改名后，dev server 会重新扫描并更新声明。`layout` 用计算出来的字符串（比如 `const name: string = ...`）时，类型收窄会报错，可以写 `as LayoutKey`。
+
+改过 `dts` 路径的话，旧位置的声明文件还会被 tsconfig 收进来，两个登记表合并，删掉的布局名会继续通过类型检查。删掉旧文件再重启即可。
+
+布局文件名要能拼出合法的组件名（字母、数字、`_`、`$`）。带引号、反斜杠之类的文件名无法生成组件，插件会跳过并给出 warning。
 
 tsconfig 的 `include` 要覆盖 `*.d.ts`，例如 `src/**/*.d.ts`。只写了 `src/**/*.ts`、`src/**/*.vue` 的项目，文件写得出来但类型不生效，把生成路径加进 `include` 即可。
 

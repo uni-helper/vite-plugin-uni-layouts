@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { LayoutKey } from 'virtual:uni-layouts'
 import { useUhUniLayoutRef } from 'virtual:uni-layouts'
 import { ref, watch } from 'vue'
 
@@ -6,7 +7,7 @@ definePage({
   layout: false,
 })
 
-const layoutName = ref<string | boolean>('default')
+const layoutName = ref<LayoutKey | boolean>('default')
 const layout = useUhUniLayoutRef()
 
 // the mini program does not clear the ref when the layout disappears
