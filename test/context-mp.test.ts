@@ -33,3 +33,30 @@ const layout = useUhUniLayoutRef()
   for (const branch of branches)
     expect(branch).toContain('ref="layout"')
 })
+
+it('matches both forms of the layout name and keeps the binding intact', async () => {
+  vi.stubEnv('UNI_PLATFORM', 'mp-weixin')
+  vi.resetModules()
+  const { Context } = await import('../src/context')
+  const { resolveOptions } = await import('../src/utils')
+
+  const ctx = new Context(resolveOptions({
+    cwd: resolve(__dirname, 'fixtures'),
+  }))
+  const code = await ctx.transform(
+    `<script setup>
+const admin = true
+</script>
+<template>
+  <uh-uni-layout :name="admin ? 'camelLayout' : 'kebabLayout'">
+    <main></main>
+  </uh-uni-layout>
+</template>`,
+    `${ctx.options.cwd}/src/pages/index/disabled.vue`,
+  )
+
+  // the parentheses keep the ternary out of the comparison, and both the
+  // camelCase layout name and its kebab form select the same branch
+  const binding = '(admin ? \'camelLayout\' : \'kebabLayout\')'
+  expect(code!.code).toContain(`${binding} === 'camelLayout' || ${binding} === 'camel-layout'`)
+})

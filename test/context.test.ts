@@ -133,6 +133,68 @@ const layout = useUhUniLayoutRef()
   expect(code?.code).toMatchSnapshot()
 })
 
+it('registers both component names in the virtual module', async () => {
+  const code = await ctx.virtualModule()
+  expect(code).toContain('app.component("layout-camel-layout-uni"')
+  expect(code).toContain('app.component("layout-camelLayout-uni"')
+})
+
+it('resolves a static layout name to its component name', async () => {
+  const code = await ctx.transform(
+    `<template>
+  <UhUniLayout name="camelLayout">
+    <main></main>
+  </UhUniLayout>
+</template>`,
+    `${ctx.options.cwd}/src/pages/index/disabled.vue`,
+  )
+  expect(code?.code).toContain('is="layout-camel-layout-uni"')
+})
+
+it('accepts the kebab form of a static layout name', async () => {
+  const code = await ctx.transform(
+    `<template>
+  <UhUniLayout name="camel-layout">
+    <main></main>
+  </UhUniLayout>
+</template>`,
+    `${ctx.options.cwd}/src/pages/index/disabled.vue`,
+  )
+  expect(code?.code).toContain('is="layout-camel-layout-uni"')
+})
+
+it('warns about an unknown static layout name', async () => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const code = await ctx.transform(
+    `<template>
+  <UhUniLayout name="ghost">
+    <main></main>
+  </UhUniLayout>
+</template>`,
+    `${ctx.options.cwd}/src/pages/index/disabled.vue`,
+  )
+  expect(warn).toHaveBeenCalledWith(expect.stringContaining('"ghost"'))
+  // the tag stays where the user wrote it so no content is lost
+  expect(code?.code).toContain('is="layout-ghost-uni"')
+})
+
+it('falls back to the default layout when the value is not a layout name', async () => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const layoutCtx = new Context(resolveOptions({
+    cwd: resolve(__dirname, 'fixtures'),
+  }))
+  layoutCtx.pages = [
+    { path: 'pages/index/index', layout: null as any },
+  ]
+  const code = await layoutCtx.transform(
+    '<template><view>hello</view></template>',
+    `${ctx.options.cwd}/src/pages/index/index.vue`,
+  )
+  expect(warn).toHaveBeenCalledWith(expect.stringContaining('not a layout name'))
+  expect(code?.code).toContain('<layout-default-uni')
+  warn.mockRestore()
+})
+
 it('warn about a wrong layout name', async () => {
   const warnCtx = new Context(resolveOptions({
     cwd: resolve(__dirname, 'fixtures'),

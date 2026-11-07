@@ -211,17 +211,24 @@ export class Context {
     if (!page)
       return
 
-    let pageLayoutName: string | undefined | false = page.layout
+    let pageLayoutName: unknown = page.layout
     let pageLayout: Layout | undefined
 
-    if (typeof pageLayoutName === 'boolean' && pageLayoutName)
+    if (typeof pageLayoutName === 'boolean' && pageLayoutName) {
       pageLayoutName = 'default'
+    }
+    else if (pageLayoutName !== undefined && typeof pageLayoutName !== 'string' && typeof pageLayoutName !== 'boolean') {
+      // a hand-written pages.json can hold any JSON value, and wrapping the page
+      // in `layout-undefined-uni` renders a tag that does not exist
+      console.warn(`[vite-plugin-uni-layouts] page "${page.path}" has a "layout" value that is not a layout name, using the default layout "${this.options.layout}"`)
+      pageLayoutName = this.options.layout
+    }
 
     if (typeof pageLayoutName === 'string') {
       // layout name is empty
       if (!pageLayoutName)
         return
-      pageLayout = this.layouts.find(l => l.name === (pageLayoutName as string))
+      pageLayout = this.findLayout(pageLayoutName)
       // a missing layout leaves the page unwrapped, which is silent otherwise
       if (!pageLayout) {
         // the name equals the `layout` option when the page has no layout of
@@ -319,6 +326,37 @@ export class Context {
     }
   }
 
+  /** Layouts answer to their camelCase name and the kebab-case form of the tag. */
+  private findLayout(name: string): Layout | undefined {
+    return this.layouts.find(layout => layout.name === name || layout.kebabName === name)
+  }
+
+  /**
+   * Component names a layout is registered under. The kebab name is the tag
+   * used in templates and on the mini program; the camelCase name is what a
+   * page binds to `:name`, and H5 resolves `<component :is>` against it as-is.
+   */
+  private componentNames(layout: Layout): string[] {
+    const kebab = `layout-${layout.kebabName}-uni`
+    const camel = `layout-${layout.name}-uni`
+    return camel === kebab
+      ? [kebab]
+      : [kebab, camel]
+  }
+
+  /**
+   * Kebab component suffix for a static `name`. An unknown name keeps the raw
+   * value so the tag stays where the user wrote it, with a warning instead of a
+   * silent no-op.
+   */
+  private staticLayoutName(node: AttributeNode): string {
+    const name = node.value?.content ?? ''
+    const layout = this.findLayout(name)
+    if (!layout)
+      console.warn(`[vite-plugin-uni-layouts] <uh-uni-layout> uses the layout "${name}", which does not exist, so it renders nothing`)
+    return layout?.kebabName ?? name
+  }
+
   async virtualModule(): Promise<string> {
     const imports: string[] = ['import { shallowRef } from \'vue\'']
     const components: string[] = []
@@ -326,9 +364,8 @@ export class Context {
       imports.push(
         `import Layout_${v.pascalName}_Uni from "${normalizePath(v.path)}"`,
       )
-      components.push(
-        `app.component("layout-${v.kebabName}-uni", Layout_${v.pascalName}_Uni)`,
-      )
+      for (const name of this.componentNames(v))
+        components.push(`app.component("${name}", Layout_${v.pascalName}_Uni)`)
       return `Layout_${v.pascalName}_Uni,`
     })
     return `${imports.join('\n')}
@@ -367,7 +404,7 @@ ${runtimeModuleCode}export default {
       if (refProp)
         props.push(refProp)
       if (staticLayoutNameBind) {
-        const layout = staticLayoutNameBind.value?.content
+        const layout = this.staticLayoutName(staticLayoutNameBind)
         return `<layout-${layout}-uni ${props.join(' ')}>${slotsSource}</layout-${layout}-uni>`
       }
 
@@ -385,7 +422,13 @@ ${runtimeModuleCode}export default {
         const directive = index === 0
           ? 'if'
           : 'else-if'
-        return `<layout-${layout.kebabName}-uni v-${directive}="${bind} ==='${layout.kebabName}'" ${props.join(' ')}>${slotsSource}</layout-${layout.kebabName}-uni>`
+        // the parentheses keep a ternary or `||` in the binding out of the
+        // comparison; the bound value may be either form of the layout name
+        const condition = [layout.name, layout.kebabName]
+          .filter((name, nameIndex, names) => names.indexOf(name) === nameIndex)
+          .map(name => `(${bind}) === '${name}'`)
+          .join(' || ')
+        return `<layout-${layout.kebabName}-uni v-${directive}="${condition}" ${props.join(' ')}>${slotsSource}</layout-${layout.kebabName}-uni>`
       })
       layouts.push(`<template v-else>${defaultSlotSource}</template>`)
 
@@ -396,7 +439,7 @@ ${runtimeModuleCode}export default {
       if (refProp)
         props.push(refProp)
       if (staticLayoutNameBind)
-        props.push(`is="layout-${staticLayoutNameBind.value?.content}-uni"`)
+        props.push(`is="layout-${this.staticLayoutName(staticLayoutNameBind)}-uni"`)
       else
         props.push(`:is="\`layout-\${${(dynamicLayoutNameBind.exp as SimpleExpressionNode).content}}-uni\`"`)
       return `<component ${props.join(' ')}>${slotsSource}</component>`
