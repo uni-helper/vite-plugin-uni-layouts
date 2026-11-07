@@ -264,7 +264,7 @@ const name = ref<LayoutKey>('namedSlots')
 </template>
 ```
 
-`<uh-uni-layout>` 组件的 `name` prop 写布局名，也支持绑定变量，其它属性会透传给布局组件。`LayoutKey` 是扫描到的布局名的联合类型，来自生成的声明文件，写错名字编辑器会报错。
+`<uh-uni-layout>` 组件的 `name` prop 写布局名（`namedSlots`），kebab 写法（`named-slots`）也认。插件按 kebab 名注册组件，同时注册 camelCase 别名，H5 的 `:is` 直接取绑定值也能命中。也支持绑定变量，其它属性会透传给布局组件。`LayoutKey` 是扫描到的布局名的联合类型，来自生成的声明文件，写错名字编辑器会报错。name 写的是不存在的布局时插件会 warning，标签留在模板里、不渲染布局。
 
 ### 读取布局实例
 
@@ -514,6 +514,12 @@ watch(layoutName, () => {
 `<uh-uni-layout>` 只有写在 `layout: false` 的页面模板顶层才会被插件改写。页面仍然套着静态布局时，标签原样留在模板里，Vue 会提示找不到组件，布局不渲染。给页面加上 `layout: false`，见[动态布局](#动态布局)。
 
 标签包在 `<view>` 之类的元素里也不会被改写，插件对这两种情况都会 warning。
+
+`name` 里的布局名找不到时（比如布局文件改名后页面没跟着改），插件会打一条 `uses the layout ... does not exist` 的 warning，标签保持原样、不渲染布局。
+
+### main 里找不到注入位置
+
+插件靠 `main.ts` 里的 `createApp(...)` 和 `return { app }` 定位注册布局组件的位置。控制台出现 `cannot find "createApp(...)" followed by "return { app }"` 时，说明入口不在这个形状里，布局组件没有注册，页面会没有布局。按 uni-app 的入口约定改回工厂函数，或者在 main 里 `import layoutPlugin from 'virtual:uni-layouts'`，再 `app.use(layoutPlugin)`。
 
 ### 页面里有 uni-layout 时编译报错
 
