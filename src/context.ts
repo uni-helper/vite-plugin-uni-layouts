@@ -449,7 +449,15 @@ ${runtimeModuleCode}export default {
   async importLayoutComponents(code: string, id: string): Promise<{
     code: string
     map: string
-  }> {
+  } | undefined> {
+    // the injection point follows the uni-app main shape; without it the
+    // imports below would register nothing and every page would lose its layout
+    const injection = /(createApp[\s\S]*?)(return\s*\{\s*app)/
+    if (!injection.test(code)) {
+      console.warn(`[vite-plugin-uni-layouts] cannot find "createApp(...)" followed by "return { app }" in "${id}", so the layout components are not registered and pages render without their layout`)
+      return
+    }
+
     const ms = new MagicString(code)
     const imports: string[] = []
     const components: string[] = []
@@ -457,15 +465,14 @@ ${runtimeModuleCode}export default {
       imports.push(
         `import Layout_${v.pascalName}_Uni from "${normalizePath(v.path)}"`,
       )
-      components.push(
-        `app.component("layout-${v.kebabName}-uni", Layout_${v.pascalName}_Uni);\n`,
-      )
+      for (const name of this.componentNames(v))
+        components.push(`app.component("${name}", Layout_${v.pascalName}_Uni);\n`)
     }
-    ms.append(imports.join('\n'))
-    ms.replace(
-      /(createApp[\s\S]*?)(return\s\{\s*app)/,
-      `$1${components.join('')}$2`,
-    )
+    // the leading newline keeps the first import off the last line of the file,
+    // and the trailing one keeps them off anything appended later
+    ms.append(`\n${imports.join('\n')}\n`)
+    // a function replacement keeps `$` in a layout name literal
+    ms.replace(injection, (_, before: string, after: string) => `${before}${components.join('')}${after}`)
     const map = ms.generateMap({
       source: id,
       file: `${id}.map`,
