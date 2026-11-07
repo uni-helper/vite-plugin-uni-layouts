@@ -299,9 +299,6 @@ importers:
       '@uni-helper/uni-env':
         specifier: 'catalog:'
         version: 0.3.3
-      '@vue/compiler-core':
-        specifier: 'catalog:'
-        version: 3.4.38
       '@vue/compiler-sfc':
         specifier: 'catalog:'
         version: 3.4.38
@@ -330,6 +327,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.6
+      '@vue/compiler-core':
+        specifier: 'catalog:'
+        version: 3.4.38
       bumpp:
         specifier: 'catalog:'
         version: 12.3.0

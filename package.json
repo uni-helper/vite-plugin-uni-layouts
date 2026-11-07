@@ -63,7 +63,6 @@
   },
   "dependencies": {
     "@uni-helper/uni-env": "catalog:",
-    "@vue/compiler-core": "catalog:",
     "@vue/compiler-sfc": "catalog:",
     "ast-kit": "catalog:",
     "chokidar": "catalog:",
@@ -75,6 +74,7 @@
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
     "@types/node": "catalog:",
+    "@vue/compiler-core": "catalog:",
     "bumpp": "catalog:",
     "eslint": "catalog:",
     "tsdown": "catalog:",
