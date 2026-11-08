@@ -1,7 +1,7 @@
 {
   "name": "@uni-helper/vite-plugin-uni-layouts",
   "type": "module",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "packageManager": "pnpm@12.16.1",
   "devEngines": {
     "runtime": {
