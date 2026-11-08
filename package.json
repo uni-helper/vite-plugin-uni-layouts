@@ -61,6 +61,14 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit"
   },
+  "peerDependencies": {
+    "@uni-helper/vite-plugin-uni-pages": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@uni-helper/vite-plugin-uni-pages": {
+      "optional": true
+    }
+  },
   "dependencies": {
     "@uni-helper/uni-env": "catalog:",
     "@vue/compiler-sfc": "catalog:",

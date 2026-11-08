@@ -236,8 +236,8 @@ catalogs:
       specifier: ^0.3.3
       version: 0.3.3
     '@uni-helper/vite-plugin-uni-pages':
-      specifier: ^0.6.1
-      version: 0.6.1
+      specifier: ^0.6.2
+      version: 0.6.2
     '@vue/compiler-core':
       specifier: ~3.4.38
       version: 3.4.38
@@ -299,6 +299,9 @@ importers:
       '@uni-helper/uni-env':
         specifier: 'catalog:'
         version: 0.3.3
+      '@uni-helper/vite-plugin-uni-pages':
+        specifier: 'catalog:'
+        version: 0.6.2(supports-color@8.1.1)(vite@5.4.21(@types/node@26.6.6)(terser@5.51.2))
       '@vue/compiler-sfc':
         specifier: 'catalog:'
         version: 3.4.38
@@ -420,7 +423,7 @@ importers:
         version: link:..
       '@uni-helper/vite-plugin-uni-pages':
         specifier: 'catalog:'
-        version: 0.6.1(supports-color@8.1.1)(vite@5.4.21(@types/node@26.6.6)(terser@5.51.2))
+        version: 0.6.2(supports-color@8.1.1)(vite@5.4.21(@types/node@26.6.6)(terser@5.51.2))
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -2559,16 +2562,16 @@ packages:
   '@uni-helper/uni-env@0.3.3':
     resolution: {integrity: sha512-K+0XpSLlnxFPobSynThFKAqri2gRBX3je04BrnxsYC5niZE9MHxY56HfiQDZcWXwHWhcZG7jLj1cFItd9z1dZA==}
 
-  '@uni-helper/uni-pages-types@0.6.1':
-    resolution: {integrity: sha512-4CZ+NYAD3V8+zQVEWAJyV+NiWIfrgsCJAFL8LqLUjCeXOPNkTmsJkYi4eJxEMBTUcY7LBYZSGusyudUJh3ybcw==}
+  '@uni-helper/uni-pages-types@0.6.2':
+    resolution: {integrity: sha512-7r4pvYge5AqZobr1i1g4LbDh3LeeiuQdK1AS8nSNdoFya1Sp6g6dO2S6WerkH7CvSVzBsUG0l8RH6CZmwGWFiw==}
     peerDependencies:
       typescript: '>=5.0.0'
     peerDependenciesMeta:
       typescript:
         optional: true
 
-  '@uni-helper/vite-plugin-uni-pages@0.6.1':
-    resolution: {integrity: sha512-MbspItpqiDUsmb6mfIMf/veh6WEiyXF28E68nDh/HuXYqSHAjGydQGGk3Dy5ONYEi4twivDAz7NcrBRr2KvMIw==}
+  '@uni-helper/vite-plugin-uni-pages@0.6.2':
+    resolution: {integrity: sha512-5PFcwxBY4gC8fiL5jQGWnNd64Rl2g11FORY1WbTHUzpOfWZxZz1hFHYQBBX8eFukVir61hOes+A+TkhHadBhSw==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
     peerDependencies:
       vite: ^5.0.0
@@ -8706,16 +8709,16 @@ snapshots:
     dependencies:
       std-env: 3.10.0
 
-  '@uni-helper/uni-pages-types@0.6.1(typescript@6.0.3)':
+  '@uni-helper/uni-pages-types@0.6.2(typescript@6.0.3)':
     optionalDependencies:
       typescript: 6.0.3
 
-  '@uni-helper/vite-plugin-uni-pages@0.6.1(supports-color@8.1.1)(vite@5.4.21(@types/node@26.6.6)(terser@5.51.2))':
+  '@uni-helper/vite-plugin-uni-pages@0.6.2(supports-color@8.1.1)(vite@5.4.21(@types/node@26.6.6)(terser@5.51.2))':
     dependencies:
       '@babel/generator': 8.0.6
       '@babel/types': 8.1.0
       '@uni-helper/uni-env': 0.3.3
-      '@uni-helper/uni-pages-types': 0.6.1(typescript@6.0.3)
+      '@uni-helper/uni-pages-types': 0.6.2(typescript@6.0.3)
       '@vue/compiler-sfc': 3.4.38
       ast-kit: 3.0.0
       bundle-require: 5.1.0(esbuild@0.28.2)

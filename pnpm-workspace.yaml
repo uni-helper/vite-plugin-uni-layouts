@@ -1,4 +1,8 @@
 minimumReleaseAgeExcludePrune: true
+minimumReleaseAgeExclude:
+  - '@uni-helper/uni-pages-types@0.6.2'
+  - '@uni-helper/vite-plugin-uni-pages@0.6.2'
+
 trustPolicy: off
 shellEmulator: true
 
@@ -35,7 +39,7 @@ catalog:
   '@types/node': ^26.6.6
   '@uni-helper/plugin-uni': ^0.1.0
   '@uni-helper/uni-env': ^0.3.3
-  '@uni-helper/vite-plugin-uni-pages': ^0.6.1
+  '@uni-helper/vite-plugin-uni-pages': ^0.6.2
   '@vue/compiler-core': ~3.4.38
   '@vue/compiler-sfc': ~3.4.38
   ast-kit: ^3.0.0
